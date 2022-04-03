@@ -70,6 +70,7 @@ publish/
 
 # Other files
 *.vsidx
+*.lock
 
 # Publish Web Output
 *.Publish.xml
