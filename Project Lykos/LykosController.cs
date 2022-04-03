@@ -10,6 +10,16 @@ namespace Project_Lykos
     
     public class LykosController
     {
+        /// </summary>
+        private const int DefaultBufferSize = 4096;
+
+        /// <summary>
+        /// Indicates that
+        /// 1. The file is to be used for asynchronous reading.
+        /// 2. The file is to be accessed sequentially from beginning to end.
+        /// </summary>
+        private const FileOptions DefaultOptions = FileOptions.Asynchronous | FileOptions.SequentialScan;
+
         // Variables
         public String Filepath_Source { get; set; } = "";
         public String Filepath_Output { get; set; } = "";
@@ -61,8 +71,18 @@ namespace Project_Lykos
          * Checks if the CSV file exists, then set the Filepath_Csv
          * Returns "0" if valid, or a String of invalid message
          */
-        public async String SetFilepath_Csv(String filepath)
+        public async Task<string> SetFilepathCsvAsync(string filepath, Encoding encoding)
         {
+            if (string.IsNullOrEmpty(filepath))
+            {
+                return "Filepath cannot be null or empty";
+            }
+
+            if (encoding is null)
+            {
+                return "Runtime Error: Encoding cannot be null";
+            }
+            
             // Check if the filepath is invalid
             if (!System.IO.File.Exists(filepath))
             {
@@ -81,9 +101,10 @@ namespace Project_Lykos
             string[] lines;
             try
             {
-                // Read the first 15 lines, until the end of the file              
-                System.IO.StreamReader file = new(filepath);
-                lines = new string[15];
+                // Read the first 15 lines, until the end of the file
+                using (var stream = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions))
+                using (var reader = new StreamReader(stream, encoding))
+                    var lines = new List<string>();
                 for (int i = 0; i < 15; i++)
                 {
                     if (!file.EndOfStream && file != null)
@@ -102,6 +123,7 @@ namespace Project_Lykos
                 // Return the invalid message
                 return "The file is not readable.";
             }
+            
 
             // Check that we have at least 2 lines
             if (lines.Length < 2)
@@ -110,48 +132,39 @@ namespace Project_Lykos
                 return "The csv file requires a minimum of 2 lines.";
             }
 
-            // Detect the delimiter
-            Delimiter = "" + CsvSeperatorDetector.DetectSeparator(lines);
+            // Predict the delimiter
+            char delimiter_char = CsvSeperatorDetector.DetectSeparator(lines);
+            
+            if (delimiter_char == '\0')
+            {
+                // Return the invalid message
+                return "Unable to detect a valid delimiter in the csv file.";
+            }
 
-            // Predict the delimiter of the CSV file using the first line
-            // Parse the CSV for the correct headers
-            // We need at least the following headers:
-            // 'out_path' and 'text'
+            Delimiter = "" + delimiter_char;
 
+            // If everything is okay, set the Filepath_Csv
+            Filepath_Csv = filepath;
         }
 
-        // Static method to detect the delimiter of a CSV file
-        public static char DetectDelimiter(String filepath)
+        // Reads a set number of lines in file asyncronously
+        public static async Task<string[]> ReadAllLinesAsync(string path, int linesToRead, Encoding encoding)
         {
-            // Create a new StreamReader
-            System.IO.StreamReader reader = new System.IO.StreamReader(filepath);
+            var lines = new List<string>();
 
-            // Read the first line
-            String line = reader.ReadLine();
-
-            // Check if the line is empty
-            if (line == "")
+            // Open the FileStream with the same FileMode, FileAccess
+            // and FileShare as a call to File.OpenText would've done.
+            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions))
+            using (var reader = new StreamReader(stream, encoding))
             {
-                // Return the default delimiter
-                return ',';
+                string line;
+                while ((line = await reader.ReadLineAsync()) != null)
+                {
+                    lines.Add(line);
+                }
             }
 
-            // Check if the line contains a comma
-            if (line.Contains(","))
-            {
-                // Return the comma delimiter
-                return ',';
-            }
-
-            // Check if the line contains a semicolon
-            if (line.Contains(";"))
-            {
-                // Return the semicolon delimiter
-                return ';';
-            }
-
-            // Return the default delimiter
-            return ',';
+            return lines.ToArray();
         }
 
         // Check if the folder path exists
@@ -200,6 +213,7 @@ namespace Project_Lykos
                 .ThenBy(res => res.Found.Count())
                 .First();
 
+            // Default behavior returns '\0' if no separator was found
             return q.Separator;
         }
     }
