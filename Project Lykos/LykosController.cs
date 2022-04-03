@@ -7,6 +7,7 @@ using CsvHelper;
 
 namespace Project_Lykos
 {
+    using static FileOps;
     
     public class LykosController
     {
@@ -98,25 +99,11 @@ namespace Project_Lykos
             }
 
             // Check if the file is readable by reading (up to) 15 lines
-            string[] lines;
+            // Create arraylist of string for lines read
+            List<string> lines = new();
             try
             {
-                // Read the first 15 lines, until the end of the file
-                using (var stream = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions))
-                using (var reader = new StreamReader(stream, encoding))
-                    var lines = new List<string>();
-                for (int i = 0; i < 15; i++)
-                {
-                    if (!file.EndOfStream && file != null)
-                    {
-                        lines[i] = file.ReadLine();
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                file.Close();
+                // Using FileOps
             }
             catch (Exception)
             {
@@ -145,26 +132,6 @@ namespace Project_Lykos
 
             // If everything is okay, set the Filepath_Csv
             Filepath_Csv = filepath;
-        }
-
-        // Reads a set number of lines in file asyncronously
-        public static async Task<string[]> ReadAllLinesAsync(string path, int linesToRead, Encoding encoding)
-        {
-            var lines = new List<string>();
-
-            // Open the FileStream with the same FileMode, FileAccess
-            // and FileShare as a call to File.OpenText would've done.
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions))
-            using (var reader = new StreamReader(stream, encoding))
-            {
-                string line;
-                while ((line = await reader.ReadLineAsync()) != null)
-                {
-                    lines.Add(line);
-                }
-            }
-
-            return lines.ToArray();
         }
 
         // Check if the folder path exists
