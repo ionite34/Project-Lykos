@@ -21,29 +21,42 @@ namespace Project_Lykos
         /// </summary>
         private const FileOptions DefaultOptions = FileOptions.Asynchronous | FileOptions.SequentialScan;
 
-        public static Task<string[]> ReadAllLinesAsync(string path)
+        /// <summary>
+        /// Reads a number of lines from a file asynchronously.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="encoding"></param>
+        /// <param name="linesToRead"></param>
+        /// <returns> List of strings of lines read </returns>
+        public static Task<List<string>> ReadLinesAsync(string path, int linesToRead = -1)
         {
-            return ReadAllLinesAsync(path, Encoding.UTF8);
+            return ReadLinesAsync(path, Encoding.UTF8, linesToRead);
         }
-        
-        // Reads a set number of lines in file asyncronously
-        public static async Task<string[]> ReadAllLinesAsync(string path, Encoding encoding, int linesToRead = -1)
+
+        /// <summary>
+        /// Reads a number of lines from a file asynchronously.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <param name="encoding"></param>
+        /// <param name="linesToRead"></param>
+        /// <returns> List of strings of lines read </returns>
+        public static async Task<List<string>> ReadLinesAsync(string path, Encoding encoding, int linesToRead = -1)
         {
             var lines = new List<string>();
 
             // Open the FileStream with the same FileMode, FileAccess
             // and FileShare as a call to File.OpenText would've done.
-            using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions))
-            using (var reader = new StreamReader(stream, encoding))
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions);
+            using var reader = new StreamReader(stream, encoding);
+            
+            // If linesToRead is -1 (Default), read the whole file
+            string? currentLine = await reader.ReadLineAsync();
+            while (currentLine != null && (linesToRead == -1 || lines.Count < linesToRead))
             {
-                string line;
-                // If linesToRead is -1 (Default), read the whole file
-                while ((line = await reader.ReadLineAsync()) != null && (linesToRead == -1 || lines.Count < linesToRead))
-                {
-                    lines.Add(line);
-                }
+                lines.Add(currentLine);                
             }
-            return lines.ToArray();
+
+            return lines;
         }
     }
 }
