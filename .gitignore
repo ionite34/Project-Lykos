@@ -69,7 +69,7 @@ _ReSharper*/
 publish/
 
 # Other files
-.visdx
+.vsidx
 
 # Publish Web Output
 *.Publish.xml
