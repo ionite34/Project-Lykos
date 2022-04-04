@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,11 +22,16 @@ namespace Project_Lykos
         /// </summary>
         private const FileOptions DefaultOptions = FileOptions.Asynchronous | FileOptions.SequentialScan;
 
-        // Variables
+        // Paths
         public String Filepath_Source { get; set; } = "";
         public String Filepath_Output { get; set; } = "";
         public String Filepath_Csv { get; set; } = "";
+        
+        // Configs
         public String Delimiter { get; set; } = "";
+
+        // Data
+        public DataTable CsvData { get; set; } = new DataTable();
 
         // Constructor
         public LykosController()
@@ -34,11 +40,17 @@ namespace Project_Lykos
             // Initialize();
         }
 
+        // Checks if the CSV is loaded by checking the length of the DataTable
+        public bool IsCsvLoaded()
+        {
+            return CsvData.Rows.Count > 0;
+        }
+
         // Set the Filepath_Source, if valid path, else return false
-        public bool SetFilepath_Source(String filepath)
+        public bool SetFilepath_Source(string filepath)
         {
             // Check if the filepath is valid
-            if (System.IO.File.Exists(filepath))
+            if (System.IO.Directory.Exists(filepath))
             {
                 // Set the Filepath_Source
                 Filepath_Source = filepath;
@@ -50,12 +62,12 @@ namespace Project_Lykos
                 return false;
             }
         }
-
+        
         // Set the Filepath_Output, if valid path, else return false
-        public bool SetFilepath_Output(String filepath)
+        public bool SetFilepath_Output(string filepath)
         {
             // Check if the filepath is valid
-            if (System.IO.File.Exists(filepath))
+            if (System.IO.Directory.Exists(filepath))
             {
                 // Set the Filepath_Output
                 Filepath_Output = filepath;
@@ -72,66 +84,31 @@ namespace Project_Lykos
          * Checks if the CSV file exists, then set the Filepath_Csv
          * Returns "0" if valid, or a String of invalid message
          */
-        public async Task<string> SetFilepathCsvAsync(string filepath, Encoding encoding)
+        public async Task<string> SetFilepathCsvAsync(string filepath)
         {
-            if (string.IsNullOrEmpty(filepath))
-            {
-                return "Filepath cannot be null or empty";
-            }
-
-            if (encoding is null)
-            {
-                return "Runtime Error: Encoding cannot be null";
-            }
-            
-            // Check if the filepath is invalid
-            if (!System.IO.File.Exists(filepath))
-            {
-                // Return the invalid message
-                return "The file does not exist.";
-            }
-
-            // Check if the file is not a CSV file
-            if (!filepath.EndsWith(".csv"))
-            {
-                // Return the invalid message
-                return "The file is not a CSV file.";
-            }
-
-            // Check if the file is readable by reading (up to) 15 lines
-            // Create arraylist of string for lines read
-            List<string> lines = new();
             try
             {
-                // Using FileOps
+                Delimiter = await ValidateCSV(filepath);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                // Return the invalid message
-                return "The file is not readable.";
-            }
-            
-
-            // Check that we have at least 2 lines
-            if (lines.Length < 2)
-            {
-                // Return the invalid message
-                return "The csv file requires a minimum of 2 lines.";
+                return e.Message;
             }
 
-            // Predict the delimiter
-            char delimiter_char = CsvSeperatorDetector.DetectSeparator(lines);
-            
-            if (delimiter_char == '\0')
-            {
-                // Return the invalid message
-                return "Unable to detect a valid delimiter in the csv file.";
-            }
-
-            Delimiter = "" + delimiter_char;
-
-            // If everything is okay, set the Filepath_Csv
+            // If everything is okay
             Filepath_Csv = filepath;
+            return "0";
+        }
+
+        // Method to load the CSV file into the datatable
+        // We do this asynchronously with progress reporting for the progress bar
+        public async Task LoadCsvAsync(string filepath, IProgress<(double current, double total)> progress, IProgress<int> progressLines)
+        {
+            List<DataColumn> headerColumns = new();
+            headerColumns.Add(new DataColumn("text", typeof(string)));
+            headerColumns.Add(new DataColumn("out_path", typeof(string)));
+            var readTask = ReadCsvAsync(filepath, headerColumns, progress, progressLines);
+            CsvData = await readTask;
         }
 
         // Check if the folder path exists
@@ -159,29 +136,6 @@ namespace Project_Lykos
             {
                 return false;
             }
-        }
-    }
-
-    static class CsvSeperatorDetector
-    {
-        private static readonly char[] SeparatorChars = { ';', '|', '\t', ',' };
-
-        public static char DetectSeparator(string csvFilePath)
-        {
-            string[] lines = File.ReadAllLines(csvFilePath);
-            return DetectSeparator(lines);
-        }
-
-        public static char DetectSeparator(string[] lines)
-        {
-            var q = SeparatorChars.Select(sep => new
-            { Separator = sep, Found = lines.GroupBy(line => line.Count(ch => ch == sep)) })
-                .OrderByDescending(res => res.Found.Count(grp => grp.Key > 0))
-                .ThenBy(res => res.Found.Count())
-                .First();
-
-            // Default behavior returns '\0' if no separator was found
-            return q.Separator;
         }
     }
 }
