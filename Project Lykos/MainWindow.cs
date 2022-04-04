@@ -3,6 +3,7 @@ namespace Project_Lykos
     public partial class MainWindow : Form
     {
         private readonly LykosController ct;
+        private readonly ProcessControl pc;
         
         private string source_path_full = "";
         private string source_path_short = "";
@@ -11,14 +12,23 @@ namespace Project_Lykos
         private string csv_path_full = "";
         private string csv_path_short = "";
 
+        // States
+        private bool ready_Preview = false;
+
         public MainWindow()
         {
             InitializeComponent();
-            // Set Default state for UI elements
-            combo_audio_preprocessing.SelectedIndex = 1;
+            // Set Default state for Combo Boxes
+            combo_audio_preprocessing.SelectedIndex = 2;
             combo_csvDelimiter.SelectedIndex = 0;
-            // Create a LykosController object
+            combo_multiprocess_count.DataSource = Enumerable.Range(1, Environment.ProcessorCount).ToList();
+            combo_multiprocess_count.SelectedIndex = 0;
+
+            // Bind states to buttons
+            button_preview.DataBindings.Add("Enabled", this, "ready_Preview");
+
             ct = new LykosController();
+            pc = new ProcessControl();
         }
 
         private void MainWindow_Load(object sender, EventArgs e)
@@ -179,6 +189,32 @@ namespace Project_Lykos
         private void Combo_Any_Enter_Leave(object sender, EventArgs e)
         {
             UpdateComboFormats();
+        }
+    }
+
+    public class DynamicPath
+    {
+        public string Path { get; private set; } = "";
+        public string ShortPath { get; private set; } = "";
+        public string FileName { get; private set; } = "";
+        
+        public DynamicPath(string path)
+        {
+            SetPath(path);
+            FileName = Path[(Path.LastIndexOf("\\") + 1)..];
+        }
+
+        public void SetPath(string path)
+        {
+            SetShortPath(path);
+            this.Path = path;
+        }
+
+        private void SetShortPath(string FullPath)
+        {
+            string path_temp = FullPath[(FullPath.LastIndexOf("\\") + 1)..];
+            path_temp = @".\" + path_temp + @"\";
+            this.ShortPath = path_temp;
         }
     }
 }
