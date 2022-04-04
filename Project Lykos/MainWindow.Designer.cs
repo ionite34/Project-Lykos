@@ -56,8 +56,12 @@
             this.button_browse_source = new System.Windows.Forms.Button();
             this.Group_ProcessingView = new System.Windows.Forms.GroupBox();
             this.Group_TotalProgress = new System.Windows.Forms.GroupBox();
-            this.label_lineCount = new System.Windows.Forms.Label();
+            this.label_progress_value1A = new System.Windows.Forms.Label();
             this.Group_Settings = new System.Windows.Forms.GroupBox();
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.label_progress_status1A = new System.Windows.Forms.Label();
+            this.label_progress_status2A = new System.Windows.Forms.Label();
+            this.label_progress_value2A = new System.Windows.Forms.Label();
             this.LayoutPanel_LowerButtons.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
             this.Group_Paths.SuspendLayout();
@@ -65,6 +69,7 @@
             this.Group_ProcessingView.SuspendLayout();
             this.Group_TotalProgress.SuspendLayout();
             this.Group_Settings.SuspendLayout();
+            this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_preview
@@ -402,7 +407,7 @@
             // 
             this.Group_TotalProgress.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
-            this.Group_TotalProgress.Controls.Add(this.label_lineCount);
+            this.Group_TotalProgress.Controls.Add(this.tableLayoutPanel1);
             this.Group_TotalProgress.Controls.Add(this.progress_total);
             this.Group_TotalProgress.Location = new System.Drawing.Point(13, 445);
             this.Group_TotalProgress.Name = "Group_TotalProgress";
@@ -411,14 +416,15 @@
             this.Group_TotalProgress.TabStop = false;
             this.Group_TotalProgress.Text = "Progress";
             // 
-            // label_lineCount
+            // label_progress_value1A
             // 
-            this.label_lineCount.AutoSize = true;
-            this.label_lineCount.Location = new System.Drawing.Point(16, 68);
-            this.label_lineCount.Name = "label_lineCount";
-            this.label_lineCount.Size = new System.Drawing.Size(57, 24);
-            this.label_lineCount.TabIndex = 4;
-            this.label_lineCount.Text = "label4";
+            this.label_progress_value1A.AutoSize = true;
+            this.label_progress_value1A.Location = new System.Drawing.Point(96, 0);
+            this.label_progress_value1A.Name = "label_progress_value1A";
+            this.label_progress_value1A.Size = new System.Drawing.Size(74, 24);
+            this.label_progress_value1A.TabIndex = 4;
+            this.label_progress_value1A.Text = "Value 1A";
+            this.label_progress_value1A.Visible = false;
             // 
             // Group_Settings
             // 
@@ -430,6 +436,53 @@
             this.Group_Settings.TabIndex = 12;
             this.Group_Settings.TabStop = false;
             this.Group_Settings.Text = "Settings";
+            // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.ColumnCount = 2;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel1.Controls.Add(this.label_progress_value2A, 1, 1);
+            this.tableLayoutPanel1.Controls.Add(this.label_progress_status2A, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.label_progress_value1A, 1, 0);
+            this.tableLayoutPanel1.Controls.Add(this.label_progress_status1A, 0, 0);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(16, 71);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 2;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(467, 127);
+            this.tableLayoutPanel1.TabIndex = 5;
+            // 
+            // label_progress_status1A
+            // 
+            this.label_progress_status1A.AutoSize = true;
+            this.label_progress_status1A.Location = new System.Drawing.Point(3, 0);
+            this.label_progress_status1A.Name = "label_progress_status1A";
+            this.label_progress_status1A.Size = new System.Drawing.Size(84, 24);
+            this.label_progress_status1A.TabIndex = 5;
+            this.label_progress_status1A.Text = "Status 1A:";
+            this.label_progress_status1A.Visible = false;
+            // 
+            // label_progress_status2A
+            // 
+            this.label_progress_status2A.AutoSize = true;
+            this.label_progress_status2A.Location = new System.Drawing.Point(3, 24);
+            this.label_progress_status2A.Name = "label_progress_status2A";
+            this.label_progress_status2A.Size = new System.Drawing.Size(87, 24);
+            this.label_progress_status2A.TabIndex = 6;
+            this.label_progress_status2A.Text = "Status 2A:";
+            this.label_progress_status2A.Visible = false;
+            // 
+            // label_progress_value2A
+            // 
+            this.label_progress_value2A.AutoSize = true;
+            this.label_progress_value2A.Location = new System.Drawing.Point(96, 24);
+            this.label_progress_value2A.Name = "label_progress_value2A";
+            this.label_progress_value2A.Size = new System.Drawing.Size(77, 24);
+            this.label_progress_value2A.TabIndex = 7;
+            this.label_progress_value2A.Text = "Value 2A";
+            this.label_progress_value2A.Visible = false;
             // 
             // MainWindow
             // 
@@ -455,8 +508,9 @@
             this.tableLayoutPanel2.PerformLayout();
             this.Group_ProcessingView.ResumeLayout(false);
             this.Group_TotalProgress.ResumeLayout(false);
-            this.Group_TotalProgress.PerformLayout();
             this.Group_Settings.ResumeLayout(false);
+            this.tableLayoutPanel1.ResumeLayout(false);
+            this.tableLayoutPanel1.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -489,8 +543,12 @@
         private Button button_browse_csv;
         private Button button_browse_output;
         private Button button_browse_source;
-        private Label label_lineCount;
+        private Label label_progress_value1A;
         private ComboBox combo_csvDelimiter;
         private Label label_csvDelimiter;
+        private TableLayoutPanel tableLayoutPanel1;
+        private Label label_progress_status1A;
+        private Label label_progress_value2A;
+        private Label label_progress_status2A;
     }
 }
