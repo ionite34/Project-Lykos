@@ -1,13 +1,17 @@
 namespace Project_Lykos
 {
+    using static ElementLink;
     public partial class MainWindow : Form
     {
         private readonly LykosController ct;
         private readonly ProcessControl pc;
-
+        
         private readonly DynamicPath source = new();
         private readonly DynamicPath output = new();
         private readonly DynamicPath csv = new();
+
+        // Tooltip
+        private readonly ToolTip labelTips = new();
 
         // States
         private bool ready_Preview = false;
@@ -15,6 +19,13 @@ namespace Project_Lykos
         public MainWindow()
         {
             InitializeComponent();
+
+            // Help text
+            labelTips.ToolTipIcon = ToolTipIcon.Info;
+            labelTips.IsBalloon = true;
+            labelTips.ShowAlways = true;
+            labelTips.SetToolTip(label_multiprocess_count, "Number of processes to run in parallel");
+
             // Set Default state for Combo Boxes
             combo_audio_preprocessing.SelectedIndex = 2;
             combo_csvDelimiter.SelectedIndex = 0;
@@ -111,9 +122,7 @@ namespace Project_Lykos
 
         // Parse CSV
         private async Task ParseCSV(string filename)
-        {
-            int currentLine = 0;
-            
+        {  
             var readTask = ct.SetFilepathCsvAsync(filename);
             string msg = await readTask;
             
@@ -123,24 +132,23 @@ namespace Project_Lykos
                 return;
             }
 
-            var progress = new Progress<(double current, double total)>(update =>
-            {
-                progress_total.Maximum = (int)Math.Round(update.total);
-                progress_total.Value = (int) Math.Round(update.current);
-                var formatted = currentLine.ToString("N0"); // Format the line count with commas
-                label_lineCount.Text = "Reading lines: " + formatted;
-            });
-            var progressLine = new Progress<int>(lineNum =>
-            {
-                currentLine = lineNum;
-            });
+            var lb1 = label_progress_status1A;
+            var lb2 = label_progress_status2A;
+            lb1.Text = "Progress: ";
+            lb2.Text = "Current Lines: ";
+            lb1.Visible = true;
+            lb2.Visible = true;
+
+            var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
+            var progressLine = LinkLabel(label_progress_value2A);
+
             await ct.LoadCsvAsync(filename, progress, progressLine);
 
             if (ct.IsCsvLoaded())
             {
                 csv.SetPath(filename);
                 UpdateComboFormats();
-                label_lineCount.Text = "";
+                label_progress_value1A.Text = "";
                 progress_total.Value = 0;
                 progress_total.Maximum = 100;
             }
