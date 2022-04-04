@@ -31,7 +31,7 @@ namespace Project_Lykos
         public String Delimiter { get; set; } = "";
 
         // Data
-        public DataTable CsvData { get; set; } = new DataTable();
+        public DataTable CsvData { get; private set; } = new DataTable();
 
         // Constructor
         public LykosController()
