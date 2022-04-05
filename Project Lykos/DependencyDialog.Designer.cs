@@ -67,6 +67,7 @@
             this.button_retry.TabIndex = 0;
             this.button_retry.Text = "Recheck";
             this.button_retry.UseVisualStyleBackColor = true;
+            this.button_retry.Click += new System.EventHandler(this.Button_retry_Click);
             // 
             // button_exit
             // 
@@ -78,6 +79,7 @@
             this.button_exit.TabIndex = 1;
             this.button_exit.Text = "Exit";
             this.button_exit.UseVisualStyleBackColor = true;
+            this.button_exit.Click += new System.EventHandler(this.Button_exit_Click);
             // 
             // label_1
             // 
@@ -113,6 +115,7 @@
             this.linkLabel_download.TabStop = true;
             this.linkLabel_download.Text = "Nexus Mods";
             this.linkLabel_download.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.linkLabel_download.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.LinkLabel_download_LinkClicked);
             // 
             // tableLayoutPanel2
             // 
@@ -152,6 +155,7 @@
             this.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Name = "DependencyDialog";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Additional resource file required";
             this.Load += new System.EventHandler(this.DependencyDialog_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
