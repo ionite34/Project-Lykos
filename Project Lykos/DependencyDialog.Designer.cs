@@ -157,7 +157,6 @@
             this.Name = "DependencyDialog";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Additional resource file required";
-            this.Load += new System.EventHandler(this.DependencyDialog_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel2.ResumeLayout(false);
             this.tableLayoutPanel2.PerformLayout();
