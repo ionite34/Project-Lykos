@@ -24,5 +24,18 @@ namespace Project_Lykos
             string expected = "4A9D909F712AA82AA28116EE30F42431";
             return hash_str == expected;
         }
+
+        public static bool CheckFonixData()
+        {
+            string appDirectory = Directory.GetCurrentDirectory();
+            var path = Path.Combine(appDirectory, "FonixData.cdf");
+            // Check file exists first
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+            // Check Checksum
+            return ChecksumMatchesFonixData(path);
+        }
     }
 }
