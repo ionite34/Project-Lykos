@@ -11,29 +11,17 @@ namespace Project_Lykos
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-
             // Check FonixData.cdf exists
-            if (DependencyCheck.CheckFonixData())
-            {
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new MainWindow());
-            }
-            else
+            if (!DependencyCheck.CheckFonixData())
             {
                 DependencyDialog dialog = new();
-
-                if (dialog.ShowDialog() == DialogResult.OK)
-                {
-                    Application.EnableVisualStyles();
-                    Application.SetCompatibleTextRenderingDefault(false);
-                    Application.Run(new MainWindow());
-                }
-                else
+                if (dialog.ShowDialog() != DialogResult.OK)
                 {
                     Application.Exit();
+                    return;
                 }
             }
+            Application.Run(new MainWindow());
         }
     }
 }
