@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -17,21 +18,40 @@ namespace Project_Lykos
             InitializeComponent();
         }
 
-        private void DependencyDialog_Load(object sender, EventArgs e)
-        {
-
-        }
-
         private void LinkLabel_download_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             string target = "https://www.nexusmods.com/skyrimspecialedition/mods/40971?tab=files";
-            System.Diagnostics.Process.Start(target);
+
+            ProcessStartInfo startInfo = new()
+            {
+                FileName = "cmd",
+                Arguments = "/c start " + target,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            Process processTemp = new()
+            {
+                StartInfo = startInfo,
+                EnableRaisingEvents = true
+            };
+            try
+            {
+                processTemp.Start();
+            }
+            catch (Exception e1)
+            {
+                MessageBox.Show("Failed to launch link." + e1.Message);
+            }
         }
+        
 
         private void Button_exit_Click(object sender, EventArgs e)
         {
             // Close the entire application
-            button_exit.DialogResult = DialogResult.Cancel;
+            this.DialogResult = DialogResult.Cancel;
             this.Close();
         }
 
