@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Store;
+using Windows.UI.Core;
+using ABI.Windows.System;
 
 namespace Project_Lykos
 {
@@ -29,55 +32,94 @@ namespace Project_Lykos
                 {
                     throw new InvalidOperationException("Cannot use both percent and total");
                 }
-                if (update.total == 0 || update.total < update.current)
+
+                var (current, total) = update;
+
+                if (total == 0 || total < current)
                 {
                     throw new IndexOutOfRangeException("Progress update provided invalid values.");
                 }
-
-                if (progressbar.Maximum != (int)update.total)
+                
+                var newValue = (int)current;
+                var totalValue = (int)total;
+                var curPercent = progressbar.Value / total;
+                
+                // If the double values are equal, override the int casting values.
+                if (current == total)
                 {
-                    progressbar.Maximum = (int)update.total;
+                    totalValue = (int) total;
+                    newValue = (int) total;
+                    curPercent = 1;
                 }
 
-                var curPercent = progressbar.Value / update.total;
-                var newPercent = update.current / update.total;
-                var curValue = progressbar.Value;
-                var newValue = (int)Math.Round(update.current);
-                var totalValue = (int)Math.Round(update.total);
-
-                if (curValue != newValue)
+                if (progressbar.Maximum != totalValue)
                 {
-                    progressbar.Value = newValue;
+                    progressbar.BeginInvoke((MethodInvoker)delegate ()
+                    {
+                        progressbar.Maximum = totalValue;
+                    });
                 }
-
+                
+                if (progressbar.Value != newValue)
+                {
+                    progressbar.BeginInvoke((MethodInvoker)delegate ()
+                    {
+                        progressbar.Value = newValue;
+                    });
+                }
+                
                 if (usePercent) // Mode '0.00%'
                 {
-                    var p = curPercent.ToString("0.00%"); // Format percent
-                    if (value.Text != p) value.Text = p;
+                    var p = curPercent.ToString("0%"); // Format percent
+                    if (value.Text != p)
+                    {
+                        value.BeginInvoke((MethodInvoker) delegate()
+                        {
+                            value.Text = p;
+                        });
+                    }
                 }
                 else if (displayTotal) // Mode '0,000/0,000'
                 {
                     var c = newValue.ToString("N0"); // Format commas
                     var t = totalValue.ToString("N0"); // Format commas
                     var str = $"{c}/{t}";
-                    if (value.Text != str) value.Text = str;
+                    if (value.Text != str)
+                    {
+                        value.BeginInvoke((MethodInvoker)delegate ()
+                        {
+                            value.Text = str;
+                        });
+                    }
                 }
                 else // Mode: '0,000'
                 {
                     var c = newValue.ToString("N0"); // Format commas
-                    if (value.Text != c) value.Text = c;
+                    if (value.Text != c)
+                    {
+                        value.BeginInvoke((MethodInvoker)delegate ()
+                        {
+                            value.Text = c;
+                        });
+                    }
                 }
+                
+                // Initialize the labels as visible.
+                if (!(value.Visible))
+                {
+                    value.BeginInvoke((MethodInvoker)delegate ()
+                    {
+                        value.Visible = true;
 
-                // Detects if task completed
-                if (update.current == update.total)
-                {
-                    value.Visible = false;
-                    status.Visible = false;
+                    });
                 }
-                else if (!value.Visible || !status.Visible)
+                if (!(status.Visible))
                 {
-                    value.Visible = true;
-                    status.Visible = true;
+                    value.BeginInvoke((MethodInvoker)delegate ()
+                    {
+                        status.Visible = true;
+
+                    });
                 }
             });
             return progress;
@@ -87,14 +129,14 @@ namespace Project_Lykos
         {
             return new Progress<int>(update =>
             {
-                var c = update.ToString("N0"); // Format commas
-                if (label.Text != c) label.Text = c;
-
-                // Set labels visible if not yet
-                if (!label.Visible)
-                {
-                    label.Visible = true;
-                }
+                // var c = update.ToString("N0"); // Format commas
+                // if (label.Text != c) label.Text = c;
+                //
+                // // Set labels visible if not yet
+                // if (!label.Visible)
+                // {
+                //     label.Visible = true;
+                // }
             });
         }
     }
