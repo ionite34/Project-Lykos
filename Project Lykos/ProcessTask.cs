@@ -49,7 +49,7 @@ namespace Project_Lykos
 
             // Set the WaveResamplingCachePath to the parent's WaveResamplingCachePath plus the file format:
             // "<UUID>_ResampledTemp.wav"
-            WavResamplingCachePath = Path.Join(pc.AudioResamplingCacheDir, TaskIdentity.UUID, "_ResampledTemp.wav");
+            WavResamplingCachePath = Path.Join(Cache.AudioResamplingDir, TaskIdentity.UUID, "_ResampledTemp.wav");
 
             // Set Args
             Arg_FonixDataPath = Path.Join(Directory.GetCurrentDirectory(), "FonixData.cdf");
@@ -59,14 +59,14 @@ namespace Project_Lykos
         // Sets WavSourcePath from FileName only
         public void SetWavSourceFile(string FileName)
         {
-            WavSourcePath = Path.Join(pc.AudioDir, FileName);
+            WavSourcePath = Path.Join(Cache.AudioDir, FileName);
         }
-
+        
         // Asynchronous processing
         public async Task ProcessAsync()
         {
             // Create the command
-            SubProcess = Cli.Wrap(pc.FaceFXPath);
+            SubProcess = Cli.Wrap(Cache.WrapPath);
         }
     }
 }
