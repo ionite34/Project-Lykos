@@ -19,7 +19,7 @@ namespace Project_Lykos
         public string TaskName { get; set; } = "";
         public string WavSourcePath { get; set; } = "";
         public string WavOutputPath { get; set; } = "";
-        public string WavResamplingCachePath { get; set; } = "";
+        public string WavResamplingCachePath { get; set; }
         public string LipOutputPath { get; set; } = "";
         public bool UseFaceFXAudioSampler { get; set; } = false;
 
@@ -45,7 +45,7 @@ namespace Project_Lykos
             pc = parent;
 
             // Create Identity
-            TaskIdentity = new();
+            TaskIdentity = new Identity();
 
             // Set the WaveResamplingCachePath to the parent's WaveResamplingCachePath plus the file format:
             // "<UUID>_ResampledTemp.wav"
@@ -62,7 +62,7 @@ namespace Project_Lykos
             WavSourcePath = Path.Join(pc.AudioDir, FileName);
         }
 
-        // Asyncronous processing
+        // Asynchronous processing
         public async Task ProcessAsync()
         {
             // Create the command
