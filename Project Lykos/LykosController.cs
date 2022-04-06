@@ -12,33 +12,16 @@ namespace Project_Lykos
     
     public class LykosController
     {
-        /// </summary>
-        private const int DefaultBufferSize = 4096;
-
-        /// <summary>
-        /// Indicates that
-        /// 1. The file is to be used for asynchronous reading.
-        /// 2. The file is to be accessed sequentially from beginning to end.
-        /// </summary>
-        private const FileOptions DefaultOptions = FileOptions.Asynchronous | FileOptions.SequentialScan;
-
         // Paths
-        public String Filepath_Source { get; set; } = "";
-        public String Filepath_Output { get; set; } = "";
-        public String Filepath_Csv { get; set; } = "";
+        public string? Filepath_Source { get; private set; }
+        public string? Filepath_Output { get; private set; }
+        public string? Filepath_Csv { get; private set; }
         
         // Configs
-        public String Delimiter { get; set; } = "";
+        public string Delimiter { get; set; } = "";
 
         // Data
-        public DataTable CsvData { get; private set; } = new DataTable();
-
-        // Constructor
-        public LykosController()
-        {
-            // Initialize the LykosController
-            // Initialize();
-        }
+        private DataTable CsvData { get; set; } = new DataTable();
 
         // Checks if the CSV is loaded by checking the length of the DataTable
         public bool IsCsvLoaded()
