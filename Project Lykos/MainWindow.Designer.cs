@@ -75,6 +75,7 @@
             // button_preview
             // 
             this.button_preview.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.button_preview.Enabled = false;
             this.button_preview.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button_preview.Location = new System.Drawing.Point(13, 13);
             this.button_preview.Name = "button_preview";
@@ -105,6 +106,7 @@
             // button_start_batch
             // 
             this.button_start_batch.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.button_start_batch.Enabled = false;
             this.button_start_batch.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button_start_batch.Location = new System.Drawing.Point(525, 13);
             this.button_start_batch.Name = "button_start_batch";
@@ -116,17 +118,19 @@
             // button3
             // 
             this.button3.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.button3.Enabled = false;
             this.button3.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button3.Location = new System.Drawing.Point(13, 68);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(506, 49);
             this.button3.TabIndex = 2;
-            this.button3.Text = "button3";
+            this.button3.Text = "Settings";
             this.button3.UseVisualStyleBackColor = true;
             // 
             // button_stop_batch
             // 
             this.button_stop_batch.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.button_stop_batch.Enabled = false;
             this.button_stop_batch.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.button_stop_batch.Location = new System.Drawing.Point(525, 68);
             this.button_stop_batch.Name = "button_stop_batch";
@@ -499,7 +503,6 @@
             this.Name = "MainWindow";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Project Lykos - Lip Generation Tool";
-            this.Load += new System.EventHandler(this.MainWindow_Load);
             this.LayoutPanel_LowerButtons.ResumeLayout(false);
             this.tableLayoutPanel3.ResumeLayout(false);
             this.tableLayoutPanel3.PerformLayout();
