@@ -79,38 +79,30 @@ namespace Project_Lykos
                 return false;
             }
         }
-
+        
         /*
          * Checks if the CSV file exists, then set the Filepath_Csv
          * Returns "0" if valid, or a String of invalid message
          */
-        public async Task<string> SetFilepathCsvAsync(string filepath)
+        public async Task SetFilepathCsvAsync(string filepath)
         {
-            try
-            {
-                Delimiter = await ValidateCSV(filepath);
-            }
-            catch (Exception e)
-            {
-                return e.Message;
-            }
-
-            // If everything is okay
+            Delimiter = await ValidateCSV(filepath);
             Filepath_Csv = filepath;
-            return "0";
         }
 
-        // Method to load the CSV file into the datatable
+        // Method to load the CSV file into the DataTable
         // We do this asynchronously with progress reporting for the progress bar
-        public async Task LoadCsvAsync(string filepath, IProgress<(double current, double total)> progress, IProgress<int> progressLines)
+        public async Task LoadCsvAsync(string filepath, IProgress<(double current, double total)> progress)
         {
-            List<DataColumn> headerColumns = new();
-            headerColumns.Add(new DataColumn("text", typeof(string)));
-            headerColumns.Add(new DataColumn("out_path", typeof(string)));
-            var readTask = ReadCsvAsync(filepath, headerColumns, progress, progressLines);
+            List<DataColumn> headerColumns = new()
+            {
+                new DataColumn("text", typeof(string)),
+                new DataColumn("out_path", typeof(string))
+            };
+            var readTask = ReadCsvAsyncV2(filepath, headerColumns, progress);
             CsvData = await readTask;
         }
-
+        
         // Check if the folder path exists
         private static bool CheckFolderPathExists(String path)
         {
