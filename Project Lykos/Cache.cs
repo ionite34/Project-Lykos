@@ -11,35 +11,32 @@ namespace Project_Lykos
     {
         // The path to the temp directory
         public static readonly string TempDir = Path.GetTempPath();
-        public static readonly string FullTempDir = Path.Join(Path.GetTempPath(), "Lykos_Temp");
+        public static string FullTempDir => Path.Join(TempDir, "Lykos_Temp");
+        public static string WrapDir => Path.Join(FullTempDir, "Wrapper");
+        public static string WrapPath => Path.Join(WrapDir, "FaceFXWrapper.exe");
+        public static string AudioDir => Path.Join(FullTempDir, "AudioSource");
+        public static string AudioResamplingDir => Path.Join(FullTempDir, "ResampleCache");
 
         // Creates the temp directory
         public static void Create()
         {
-            if (!Directory.Exists(FullTempDir))
-            {
-                Directory.CreateDirectory(FullTempDir);
-            }
+            if (Directory.Exists(FullTempDir)) return;
+            Directory.CreateDirectory(FullTempDir);
+            Directory.CreateDirectory(Path.Join(FullTempDir, "Wrapper"));
+            Directory.CreateDirectory(Path.Join(FullTempDir, "Source_Audio"));
         }
 
         // Deletes the temp directory
         public static void Destroy()
         {
-            if (Directory.Exists(FullTempDir))
-            {
-                Directory.Delete(FullTempDir, true);
-            }
+            if (!Directory.Exists(FullTempDir)) return;
+            Directory.Delete(FullTempDir, true);
         }
 
         public static void DeployFaceFX(string relativeTempPath = "Wrapper")
         {
-            if (!Directory.Exists(FullTempDir))
-            {
-                Directory.CreateDirectory(FullTempDir);
-            }
-            
+            Create();
             var wrapDir = Path.Join(FullTempDir, relativeTempPath);
-            // Extract the exe file from the resource
             File.WriteAllBytes(wrapDir, Properties.Resources.FaceFXWrapper);
         }
 
