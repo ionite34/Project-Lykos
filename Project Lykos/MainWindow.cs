@@ -6,9 +6,9 @@ namespace Project_Lykos
         private readonly LykosController ct;
         private readonly ProcessControl pc;
         
-        private readonly DynamicPath source = new();
-        private readonly DynamicPath output = new();
-        private readonly DynamicPath csv = new();
+        private readonly DynamicPath DynPathSource = new();
+        private readonly DynamicPath DynPathOutput = new();
+        private readonly DynamicPath DynPathCSV = new();
 
         // Tooltip
         private readonly ToolTip labelTips = new();
@@ -57,12 +57,12 @@ namespace Project_Lykos
                 // Check folder path exists
                 if (ct.SetFilepath_Source(fbd.SelectedPath))
                 {
-                    source.SetPath(fbd.SelectedPath);
+                    DynPathSource.SetPath(fbd.SelectedPath);
                     UpdateComboFormats();
                 }
                 else
                 {
-                    MessageBox.Show("The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -78,12 +78,12 @@ namespace Project_Lykos
                 // Check folder path exists
                 if (ct.SetFilepath_Output(fbd.SelectedPath))
                 {
-                    output.SetPath(fbd.SelectedPath);
+                    DynPathOutput.SetPath(fbd.SelectedPath);
                     UpdateComboFormats();
                 }
                 else
                 {
-                    MessageBox.Show("The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -94,145 +94,97 @@ namespace Project_Lykos
             // Create a new OpenFileDialog and show
             OpenFileDialog ofd = new()
             {
-                Filter = "CSV Files (*.csv)|*.csv",
-                Title = "Select the .csv file used for voice generation",
+                Filter = @"CSV Files (*.csv)|*.csv",
+                Title = @"Select the .csv file used for voice generation",
                 CheckFileExists = true,
             };
-            DialogResult result = ofd.ShowDialog();
-            if (result == DialogResult.OK)
+            var result = ofd.ShowDialog();
+            if (result != DialogResult.OK) return;
+            if (!(File.Exists(ofd.FileName)))
             {
-                if (File.Exists(ofd.FileName))
-                {
-                    try
-                    {
-                        await ParseCSV(ofd.FileName);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message, "Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-                }
-                else
-                {
-                    MessageBox.Show("The selected file does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                MessageBox.Show(@"The selected file does not exist. Or cannot be reached.", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
+            await ParseCSV(ofd.FileName);
         }
 
         // Parse CSV
         private async Task ParseCSV(string filename)
-        {  
-            var readTask = ct.SetFilepathCsvAsync(filename);
-            string msg = await readTask;
-            
-            if (await readTask != "0")
-            {
-                MessageBox.Show(msg, "Error reading csv file", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
+        {
             var lb1 = label_progress_status1A;
-            var lb2 = label_progress_status2A;
-            lb1.Text = "Progress: ";
-            lb2.Text = "Current Lines: ";
-            lb1.Visible = true;
-            lb2.Visible = true;
+            lb1.Text = @"Progress: ";
 
-            var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
-            var progressLine = LinkLabel(label_progress_value2A);
+            var testSetPath = Task.Run(async () =>
+            {
+                try
+                {
+                    await ct.SetFilepathCsvAsync(filename);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, @"Error in initial reading of CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            });
 
-            await ct.LoadCsvAsync(filename, progress, progressLine);
+            await testSetPath;
+
+            var loadCSV = Task.Run(async () =>
+            {
+                var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
+                try
+                {
+                    await ct.LoadCsvAsync(filename, progress);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, @"Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    await ResetUIProgress(1000);
+                }
+            });
+
+            await loadCSV;
 
             if (ct.IsCsvLoaded())
             {
-                csv.SetPath(filename);
+                DynPathCSV.SetPath(filename);
                 UpdateComboFormats();
-                label_progress_value1A.Text = "";
-                progress_total.Value = 0;
-                progress_total.Maximum = 100;
             }
+
+            await ResetUIProgress(1000);
+        }
+
+        // Asynchronous Method that clears the progress related elements after a certain time passed in the method
+        private async Task ResetUIProgress(int delay)
+        {
+            // Check that the delay is valid
+            if (delay is < 0 or > 5000) throw new Exception("Invalid delay UI action.");
+            var resetElements = Task.Run(() =>
+            {
+                Task.Delay(delay);
+                progress_total.BeginInvoke((MethodInvoker)delegate ()
+                {
+                    progress_total.Value = 0;
+                    progress_total.Maximum = 100;
+                    label_progress_value1A.Text = "";
+                    label_progress_status1A.Text = "";
+                    label_progress_value2A.Text = "";
+                    label_progress_status2A.Text = "";
+                });
+            });
+            await resetElements;
         }
 
         // Update the combo boxes depending on focus, shows short paths when out of focus, shows full paths when in focus
         private void UpdateComboFormats()
         {
-            if (combo_source.Focused)
-            {
-                combo_source.Text = source.Path;
-            }
-            else
-            {
-                combo_source.Text = source.ShortPath;
-            }
-            if (combo_output.Focused)
-            {
-                combo_output.Text = output.Path;
-            }
-            else
-            {
-                combo_output.Text = output.ShortPath;
-            }
-            if (combo_csv.Focused)
-            {
-                combo_csv.Text = csv.Path;
-            }
-            else
-            {
-                combo_csv.Text = csv.FileName;
-            }
+            combo_source.Text = combo_source.Focused ? DynPathSource.Path : DynPathSource.ShortPath;
+            combo_output.Text = combo_output.Focused ? DynPathOutput.Path : DynPathOutput.ShortPath;
+            combo_csv.Text = combo_csv.Focused ? DynPathCSV.Path : DynPathCSV.FileName;
         }
 
         private void Combo_Any_Enter_Leave(object sender, EventArgs e)
         {
             UpdateComboFormats();
-        }
-    }
-
-    public class DynamicPath
-    {
-        public string Path { get; private set; } = "";
-        public string ShortPath { get; private set; } = "";
-        public string FileName { get; private set; } = "";
-
-        public DynamicPath()
-        {
-            SetPath("");
-        }
-
-        public DynamicPath(string path)
-        {
-            SetPath(path);
-            if (path.Length > 0)
-            {
-                FileName = Path[(Path.LastIndexOf("\\") + 1)..];
-            }
-        }
-
-        public void SetPath(string path)
-        {
-            SetShortPath(path);
-            SetFileName(path);
-            this.Path = path;
-        }
-
-        private void SetShortPath(string FullPath)
-        {
-            if (FullPath.Length > 0)
-            {
-                string path_temp = FullPath[(FullPath.LastIndexOf("\\") + 1)..];
-                path_temp = @".\" + path_temp + @"\";
-                this.ShortPath = path_temp;
-            }
-        }
-
-        private void SetFileName(string FullPath)
-        {
-            if (FullPath.Length > 0)
-            {
-                string path_temp = FullPath[(FullPath.LastIndexOf("\\") + 1)..];
-                this.FileName = path_temp;
-            }
         }
     }
 }
