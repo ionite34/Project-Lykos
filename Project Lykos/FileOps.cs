@@ -197,11 +197,12 @@ namespace Project_Lykos
                 Delimiter = "," // The delimiter is a comma
             };
 
-            await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var reader = new StreamReader(stream, Encoding.UTF8);
+
 
             var readTask = Task.Run(async () =>
             {
+                await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var reader = new StreamReader(stream, Encoding.UTF8);
                 using var csvReader = new CsvReader(reader, configuration);
                 var records = csvReader.EnumerateDynamicRecordsAsync();
                 await foreach (var line in records)
@@ -216,16 +217,17 @@ namespace Project_Lykos
                 return dt;
             });
             
-            var progressTask = Task.Run(async () =>
-            {
-                while ((stream != null) && (stream.Position < stream.Length))
-                {
-                    await Task.Delay(TimeSpan.FromMilliseconds(100));
-                    progress.Report((stream.Position, stream.Length));
-                }
-            });
+            // var progressTask = Task.Run(async () =>
+            // {
+            //     while ((stream != null) && (stream.Position < stream.Length))
+            //     {
+            //         await Task.Delay(TimeSpan.FromMilliseconds(100));
+            //         progress.Report((stream.Position, stream.Length));
+            //     }
+            // });
 
-            await Task.WhenAll(readTask, progressTask);
+            // await Task.WhenAll(readTask, progressTask);
+            await readTask;
             return readTask.Result;
         }
 
@@ -260,48 +262,18 @@ namespace Project_Lykos
             // Convert float to percentage
             var percent = confidenceLevel.ToString("0%");
 
-            if (!Equals(encoding, Encoding.ASCII) && !Equals(encoding, Encoding.UTF8))
+            if (!Equals(encoding, Encoding.ASCII) && !Equals(encoding, Encoding.UTF8) && confidenceLevel > 0.5)
             {
-                var text = @"The selected CSV file was detected to be in a " + encodingName.ToUpper() + " encoded format with " + percent + " confidence. " + 
-                           "Only the UTF8 and ASCII formats are officially supported. " +
-                           "You may choose to ignore this warning and attempt to read the file anyway, but the extracted text lines may be incorrect or corrupt.";
-                var title = @"Encoding Format Warning";
-                var dialogResult = MessageBox.Show(text, title, MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button3);
-                switch (dialogResult)
-                {
-                    case DialogResult.Abort:
-                        return "0";
-                    case DialogResult.Retry:
-                        throw new Exception("Retry failed");
-                    case DialogResult.Ignore:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(dialogResult));
-                }
-            }
-            else if ((Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8)) && confidenceLevel > 0.9)
-            {
-                var text = @"The selected CSV file was detected to be in a " + encodingName.ToUpper() + " encoded format with " + percent + " confidence. " +
-                           "Only the UTF8 and ASCII formats are officially supported. " +
-                           "You may choose to ignore this warning and attempt to read the file anyway, but the extracted text lines may be incorrect or corrupt.";
-                var title = @"Encoding Format Warning";
-                var dialogResult = MessageBox.Show(text, title, MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button3);
-                switch (dialogResult)
-                {
-                    case DialogResult.Abort:
-                        return "0";
-                    case DialogResult.Retry:
-                        throw new Exception("Retry failed");
-                    case DialogResult.Ignore:
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(dialogResult));
-                }
+                var text = @"The selected CSV file was detected to be in a " + encodingName.ToUpper() +
+                           " encoded format with " + percent + " confidence. " +
+                           "Only the UTF-8 and ASCII formats are officially supported. " +
+                           "You may choose to ignore this warning and attempt to read the file anyway, but the extracted text lines may be incorrect or corrupt. " +
+                           "Select Yes to continue reading the file";
+                const string title = @"Encoding Format Warning";
+                var dialogResult = MessageBox.Show(text, title, MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button3);
+                if (dialogResult == DialogResult.No) return "0";
             }
 
-
-            // Show warning style messagebox:
-            
             // Check if the file is readable by reading (up to) 15 lines
             // Create array list of string for lines read
             List<string> lines;
@@ -348,8 +320,6 @@ namespace Project_Lykos
             {
                 throw new Exception("Error attempting to read header, please check the file format.");
             }
-
-            // Everything is okay
             return delimiterChar.ToString();
         } 
     }
