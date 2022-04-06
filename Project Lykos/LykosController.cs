@@ -18,9 +18,9 @@ namespace Project_Lykos
         public string? Filepath_Csv { get; private set; }
 
         // Dynamic Paths
-        private readonly DynamicPath DynPathSource = new();
-        private readonly DynamicPath DynPathOutput = new();
-        private readonly DynamicPath DynPathCSV = new();        
+        public DynamicPath DynPathSource = new();
+        public DynamicPath DynPathOutput = new();
+        public DynamicPath DynPathCSV = new();        
 
         // Configs
         public string Delimiter { get; set; } = "";
