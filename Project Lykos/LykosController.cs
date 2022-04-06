@@ -101,32 +101,5 @@ namespace Project_Lykos
             var readTask = ReadCsvAsync(filepath, headerColumns, progress);
             CsvData = await readTask;
         }
-        
-        // Check if the folder path exists
-        private static bool CheckFolderPathExists(String path)
-        {
-            if (System.IO.Directory.Exists(path))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        // Check if the file path exists
-        private static bool CheckFilePathExists(String path)
-        {
-            // Check if the file path exists
-            if (System.IO.File.Exists(path))
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
     }
 }
