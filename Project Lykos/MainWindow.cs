@@ -5,12 +5,7 @@ namespace Project_Lykos
     using static ElementLink;
     public partial class MainWindow : Form
     {
-        private readonly LykosController ct;
-        private readonly ProcessControl pc;
-        
-        private readonly DynamicPath DynPathSource = new();
-        private readonly DynamicPath DynPathOutput = new();
-        private readonly DynamicPath DynPathCSV = new();
+        private readonly LykosController _ct;
 
         // Tooltip
         private readonly ToolTip labelTips = new();
@@ -31,7 +26,7 @@ namespace Project_Lykos
             combo_multiprocess_count.DataSource = Enumerable.Range(1, Environment.ProcessorCount).ToList();
             combo_multiprocess_count.SelectedIndex = 0;
 
-            ct = new LykosController();
+            _ct = new LykosController();
         }
 
         // Browse Source button
@@ -42,7 +37,7 @@ namespace Project_Lykos
             var result = fbd.ShowDialog();
             if (result != DialogResult.OK) return;
             // Check folder path exists
-            if (ct.SetFilepath_Source(fbd.SelectedPath))
+            if (_ct.SetFilepath_Source(fbd.SelectedPath))
             {
                 DynPathSource.SetPath(fbd.SelectedPath);
                 UpdateComboFormats();
@@ -61,7 +56,7 @@ namespace Project_Lykos
             var result = fbd.ShowDialog();
             if (result != DialogResult.OK) return;
             // Check folder path exists
-            if (ct.SetFilepath_Output(fbd.SelectedPath))
+            if (_ct.SetFilepath_Output(fbd.SelectedPath))
             {
                 DynPathOutput.SetPath(fbd.SelectedPath);
                 UpdateComboFormats();
@@ -97,7 +92,7 @@ namespace Project_Lykos
         {
             try
             {
-                var csvCheckResult = await Task.Run(() => ct.SetFilepathCsvAsync(filename));
+                var csvCheckResult = await Task.Run(() => _ct.SetFilepathCsvAsync(filename));
                 if (!csvCheckResult) return;
             }
             catch (Exception ex)
@@ -110,7 +105,7 @@ namespace Project_Lykos
             {
                 var lb1 = label_progress_status1A;
                 lb1.Text = @"Progress: ";
-                await Task.Run(() => ct.LoadCsvAsync(filename, progress));
+                await Task.Run(() => _ct.LoadCsvAsync(filename, progress));
             }
             catch (Exception ex)
             {
@@ -118,7 +113,7 @@ namespace Project_Lykos
                 await ResetUIProgress();
             }
 
-            if (ct.IsCsvLoaded())
+            if (_ct.IsCsvLoaded())
             {
                 DynPathCSV.SetPath(filename);
                 UpdateComboFormats();
