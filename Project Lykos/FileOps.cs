@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using CsvHelper;
+using CsvHelper.Configuration;
+using CsvHelper.FastDynamic;
 using System.Data;
 using System.Globalization;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using CsvHelper;
-using CsvHelper.Configuration;
 
 namespace Project_Lykos
 {
@@ -29,12 +26,11 @@ namespace Project_Lykos
         /// Reads a number of lines from a file asynchronously.
         /// </summary>
         /// <param name="path"></param>
-        /// <param name="encoding"></param>
         /// <param name="linesToRead"></param>
         /// <returns> List of strings of lines read </returns>
-        public static Task<List<string>> ReadLinesAsync(string path, int linesToRead = -1)
+        private static async Task<List<string>> ReadLinesAsync(string path, int linesToRead = -1)
         {
-            return ReadLinesAsync(path, Encoding.UTF8, linesToRead);
+            return await ReadLinesAsync(path, Encoding.UTF8, linesToRead);
         }
 
         /// <summary>
@@ -44,17 +40,17 @@ namespace Project_Lykos
         /// <param name="encoding"></param>
         /// <param name="linesToRead"></param>
         /// <returns> List of strings of lines read </returns>
-        public static async Task<List<string>> ReadLinesAsync(string path, Encoding encoding, int linesToRead = -1)
+        private static async Task<List<string>> ReadLinesAsync(string path, Encoding encoding, int linesToRead = -1)
         {
             var lines = new List<string>();
 
             // Open the FileStream with the same FileMode, FileAccess
             // and FileShare as a call to File.OpenText would've done.
-            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions);
+            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, DefaultBufferSize, DefaultOptions);
             using var reader = new StreamReader(stream, encoding);
             
             // If linesToRead is -1 (Default), read the whole file
-            string? currentLine = await reader.ReadLineAsync();
+            var currentLine = await reader.ReadLineAsync();
             while (currentLine != null && (linesToRead == -1 || lines.Count < linesToRead))
             {
                 lines.Add(currentLine);                
@@ -64,7 +60,16 @@ namespace Project_Lykos
         }
         
         
-        public static async Task<DataTable> ReadCsvAsync(string filePath, List<DataColumn> headersToRecord, IProgress<(double current, double total)> progress, IProgress<int> progressLines)
+        /// <summary>
+        /// Reads CSV Asynchronously with a provided list of headers provided as DataColumns, returns DataTable.
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="headersToRecord"></param>
+        /// <param name="progress"></param>
+        /// <param name="progressLines"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public static async Task<DataTable> ReadCsvAsync(string filePath, List<DataColumn> headersToRecord, IProgress<(double current, double total)> progress, IProgress<int>? progressLines = null)
         {
             DataTable dt = new();
             foreach (var header in headersToRecord)
@@ -77,8 +82,8 @@ namespace Project_Lykos
                 Encoding = Encoding.UTF8, // Our file uses UTF-8 encoding
                 Delimiter = "," // The delimiter is a comma
             };
-            
-            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var reader = new StreamReader(stream, Encoding.UTF8);
             using var csv = new CsvReader(reader, configuration);
 
@@ -86,39 +91,70 @@ namespace Project_Lykos
 
             var readTask = Task.Run(async () =>
             {
+                // This will do another tas
                 await csv.ReadAsync();
                 csv.ReadHeader();
                 var linesRead = 0;
                 while (csv.Read())
                 {
-                    foreach (var header in headersToRecord)
+                    var row = dt.NewRow();
+                    foreach (var (dataColumn, index) in headersToRecord.Select((column, index) => (column, index)))
                     {
-                        Type T = header.DataType;
+                        var headerName = dataColumn.ColumnName;
+                        var T = dataColumn.DataType;
 
                         if (T == typeof(string))
                         {
-                            dt.Rows.Add(csv.GetField<string>(header.ColumnName));
+                            row[index] = csv.GetField<string>(headerName);
                         }
                         else if (T == typeof(int))
                         {
-                            dt.Rows.Add(csv.GetField<int>(header.ColumnName));
+                            row[index] = csv.GetField<int>(headerName);
                         }
                         else if (T == typeof(double))
                         {
-                            dt.Rows.Add(csv.GetField<double>(header.ColumnName));
+                            row[index] = csv.GetField<double>(headerName);
                         }
                         else if (T == typeof(DateTime))
                         {
-                            dt.Rows.Add(csv.GetField<DateTime>(header.ColumnName));
+                            row[index] = csv.GetField<DateTime>(headerName);
                         }
                         else
                         {
                             throw new Exception("Unsupported data type");
                         }
                     }
+                    
+                    // foreach (var header in headersToRecord)
+                    // {
+                    //     var T = header.DataType;
+                    //
+                    //     if (T == typeof(string))
+                    //     {
+                    //         dt.Rows.Add(csv.GetField<string>(header.ColumnName));
+                    //     }
+                    //     else if (T == typeof(int))
+                    //     {
+                    //         dt.Rows.Add(csv.GetField<int>(header.ColumnName));
+                    //     }
+                    //     else if (T == typeof(double))
+                    //     {
+                    //         dt.Rows.Add(csv.GetField<double>(header.ColumnName));
+                    //     }
+                    //     else if (T == typeof(DateTime))
+                    //     {
+                    //         dt.Rows.Add(csv.GetField<DateTime>(header.ColumnName));
+                    //     }
+                    //     else
+                    //     {
+                    //         throw new Exception("Unsupported data type");
+                    //     }
+                    // }
+                    
+                    dt.Rows.Add(row);
                     linesRead++;
-                    progressLines.Report(linesRead);
-                }           
+                    progressLines?.Report(linesRead);
+                }
                 return dt;
             });
 
@@ -132,7 +168,62 @@ namespace Project_Lykos
             });
 
             await Task.WhenAll(readTask, progressTask);
+            return readTask.Result;
+        }
 
+        /// <summary>
+        /// Reads CSV Asynchronously with a provided list of headers provided as DataColumns, returns DataTable.
+        /// v2 -> uses new native datatable method
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <param name="headersToRecord"></param>
+        /// <param name="progress"></param>
+        /// <param name="progressLines"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public static async Task<DataTable> ReadCsvAsyncV2(string filePath, List<DataColumn> headersToRecord, IProgress<(double current, double total)> progress)
+        {
+            DataTable dt = new();
+            foreach (var header in headersToRecord)
+            {
+                dt.Columns.Add(header);
+            }
+            
+            var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
+            {
+                Encoding = Encoding.UTF8, // Our file uses UTF-8 encoding
+                Delimiter = "," // The delimiter is a comma
+            };
+
+            await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+
+            var readTask = Task.Run(async () =>
+            {
+                using var csvReader = new CsvReader(reader, configuration);
+                var records = csvReader.EnumerateDynamicRecordsAsync();
+                await foreach (var line in records)
+                {
+                    var row = dt.NewRow();
+                    foreach (var (dataColumn, index) in headersToRecord.Select((column, index) => (column, index)))
+                    {
+                        row[index] = line[dataColumn.ColumnName];
+                    }
+                    dt.Rows.Add(row);
+                }
+                return dt;
+            });
+            
+            var progressTask = Task.Run(async () =>
+            {
+                while ((stream != null) && (stream.Position < stream.Length))
+                {
+                    await Task.Delay(TimeSpan.FromMilliseconds(100));
+                    progress.Report((stream.Position, stream.Length));
+                }
+            });
+
+            await Task.WhenAll(readTask, progressTask);
             return readTask.Result;
         }
 
@@ -158,8 +249,8 @@ namespace Project_Lykos
             }
 
             // Check if the file is readable by reading (up to) 15 lines
-            // Create arraylist of string for lines read
-            List<string> lines = new();
+            // Create array list of string for lines read
+            List<string> lines;
             try
             {
                 // Using FileOps
@@ -177,9 +268,9 @@ namespace Project_Lykos
             }
 
             // Predict the delimiter
-            char delimiter_char = CsvSeperatorDetector.DetectSeparator(lines);
+            var delimiterChar = CSVDelimiterDetector.DetectSeparator(lines);
 
-            if (delimiter_char == '\0')
+            if (delimiterChar == '\0')
             {
                 throw new Exception("Unable to detect a valid delimiter in the csv file.");
             }
@@ -188,7 +279,7 @@ namespace Project_Lykos
             try
             {
                 List<string> header_items = new();
-                header_items = lines[0].Split(delimiter_char).ToList();
+                header_items = lines[0].Split(delimiterChar).ToList();
                 if (header_items.Count < 2)
                 {
                     throw new Exception("The file does not contain enough columns.");
@@ -205,31 +296,7 @@ namespace Project_Lykos
             }
 
             // Everything is okay
-            return delimiter_char.ToString();
+            return delimiterChar.ToString();
         } 
-    }
-
-    static class CsvSeperatorDetector
-    {
-        private static readonly char[] SeparatorChars = { ';', '|', '\t', ',' };
-
-        public static char DetectSeparator(string csvFilePath)
-        {
-            string[] lines = File.ReadAllLines(csvFilePath);
-            List<string> lines_list = lines.ToList();
-            return DetectSeparator(lines_list);
-        }
-
-        public static char DetectSeparator(List<string> lines)
-        {
-            var q = SeparatorChars.Select(sep => new
-            { Separator = sep, Found = lines.GroupBy(line => line.Count(ch => ch == sep)) })
-                .OrderByDescending(res => res.Found.Count(grp => grp.Key > 0))
-                .ThenBy(res => res.Found.Count())
-                .First();
-
-            // Default behavior returns '\0' if no separator was found
-            return q.Separator;
-        }
     }
 }
