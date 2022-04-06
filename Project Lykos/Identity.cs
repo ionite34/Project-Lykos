@@ -11,7 +11,7 @@ namespace Project_Lykos
         // Holds Identity such as Name and UUID for ProcessControl objects
         public int? UI_TotalCount { get; set; }
         public string? UI_Name { get; set; }
-        public string UUID { get; set; }
+        public string UUID { get; }
         // Constructor
         public Identity()
         {
