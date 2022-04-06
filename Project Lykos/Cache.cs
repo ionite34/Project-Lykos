@@ -40,5 +40,15 @@ namespace Project_Lykos
             File.WriteAllBytes(wrapDir, Properties.Resources.FaceFXWrapper);
         }
 
+        public static void DeployFonixData(string relativeTempPath = "Wrapper")
+        {
+            if (!(DependencyCheck.CheckFonixData())) throw new IOException("Fonix data not found");
+            Create();
+            var appDirectory = Directory.GetCurrentDirectory();
+            var path = Path.Combine(appDirectory, "FonixData.cdf");
+            // Move the file from path to the temp directory
+            File.Copy(path, Path.Join(FullTempDir, relativeTempPath, "FonixData.cdf"));
+        }
+
     }
 }
