@@ -1,3 +1,5 @@
+using System.Windows.Forms.VisualStyles;
+
 namespace Project_Lykos
 {
     using static ElementLink;
@@ -12,9 +14,6 @@ namespace Project_Lykos
 
         // Tooltip
         private readonly ToolTip labelTips = new();
-
-        // States
-        private bool ready_Preview = false;
 
         public MainWindow()
         {
@@ -36,34 +35,22 @@ namespace Project_Lykos
             pc = new ProcessControl();
         }
 
-        private void MainWindow_Load(object sender, EventArgs e)
-        {
-            
-        }
-
-        private void Box_output_path_SelectedIndexChanged(object sender, EventArgs e)
-        {
-
-        }
-
         // Browse Source button
         private void Button_browse_source_Click(object sender, EventArgs e)
         {
             // Create a new FolderBrowserDialog and show
             FolderBrowserDialog fbd = new();
-            DialogResult result = fbd.ShowDialog();
-            if (result == DialogResult.OK)
+            var result = fbd.ShowDialog();
+            if (result != DialogResult.OK) return;
+            // Check folder path exists
+            if (ct.SetFilepath_Source(fbd.SelectedPath))
             {
-                // Check folder path exists
-                if (ct.SetFilepath_Source(fbd.SelectedPath))
-                {
-                    DynPathSource.SetPath(fbd.SelectedPath);
-                    UpdateComboFormats();
-                }
-                else
-                {
-                    MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                DynPathSource.SetPath(fbd.SelectedPath);
+                UpdateComboFormats();
+            }
+            else
+            {
+                MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -72,19 +59,17 @@ namespace Project_Lykos
         {
             // Create a new FolderBrowserDialog and show
             FolderBrowserDialog fbd = new();
-            DialogResult result = fbd.ShowDialog();
-            if (result == DialogResult.OK)
+            var result = fbd.ShowDialog();
+            if (result != DialogResult.OK) return;
+            // Check folder path exists
+            if (ct.SetFilepath_Output(fbd.SelectedPath))
             {
-                // Check folder path exists
-                if (ct.SetFilepath_Output(fbd.SelectedPath))
-                {
-                    DynPathOutput.SetPath(fbd.SelectedPath);
-                    UpdateComboFormats();
-                }
-                else
-                {
-                    MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
+                DynPathOutput.SetPath(fbd.SelectedPath);
+                UpdateComboFormats();
+            }
+            else
+            {
+                MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -105,51 +90,34 @@ namespace Project_Lykos
                 MessageBox.Show(@"The selected file does not exist. Or cannot be reached.", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            await ParseCSV(ofd.FileName);
+            await ParseCSV(ofd.FileName).ConfigureAwait(false);
         }
 
         // Parse CSV
         private async Task ParseCSV(string filename)
         {
-            var lb1 = label_progress_status1A;
-            lb1.Text = @"Progress: ";
-
-            var testSetPath = Task.Run(async () =>
+            try
             {
-                var csvCheckResult = false;
-                try
-                {
-                    csvCheckResult = await ct.SetFilepathCsvAsync(filename);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, @"Error in initial reading of CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                return csvCheckResult;
-            });
-
-            var returnedResult = await testSetPath;
-
-            if (!returnedResult)
+                var csvCheckResult = await Task.Run(() => ct.SetFilepathCsvAsync(filename));
+                if (!csvCheckResult) return;
+            }
+            catch (Exception ex)
             {
-                return;
+                MessageBox.Show(ex.Message, @"Error in initial reading of CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-            var loadCSV = Task.Run(async () =>
+            var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
+            try
             {
-                var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
-                try
-                {
-                    await ct.LoadCsvAsync(filename, progress);
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show(ex.Message, @"Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    await ResetUIProgress(2000);
-                }
-            });
-
-            await loadCSV;
+                var lb1 = label_progress_status1A;
+                lb1.Text = @"Progress: ";
+                await Task.Run(() => ct.LoadCsvAsync(filename, progress));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, @"Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                await ResetUIProgress();
+            }
 
             if (ct.IsCsvLoaded())
             {
@@ -157,28 +125,29 @@ namespace Project_Lykos
                 UpdateComboFormats();
             }
 
-            await ResetUIProgress(2000);
+            await ResetUIProgress();
         }
 
         // Asynchronous Method that clears the progress related elements after a certain time passed in the method
-        private async Task ResetUIProgress(int delay)
+        // We do this because IProgress is also async 
+        private async Task ResetUIProgress()
         {
-            // Check that the delay is valid
-            if (delay is < 0 or > 5000) throw new Exception("Invalid delay UI action.");
-            var resetElements = Task.Run(() =>
+            await Task.Run(() =>
             {
-                Task.Delay(TimeSpan.FromMilliseconds(delay));
                 progress_total.BeginInvoke((MethodInvoker)delegate ()
                 {
                     progress_total.Value = 0;
                     progress_total.Maximum = 100;
                     label_progress_value1A.Text = "";
+                    label_progress_value1A.Visible = false;
                     label_progress_status1A.Text = "";
+                    label_progress_status1A.Visible = false;
                     label_progress_value2A.Text = "";
+                    label_progress_value2A.Visible = false;
                     label_progress_status2A.Text = "";
+                    label_progress_value2A.Visible = false;
                 });
             });
-            await resetElements;
         }
 
         // Update the combo boxes depending on focus, shows short paths when out of focus, shows full paths when in focus
