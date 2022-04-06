@@ -10,16 +10,20 @@ namespace Project_Lykos
 {
     public class ProcessControl
     {
-        private readonly LykosController? ct;
-
-        
         // Stores a queue of tasks
         public Queue<ProcessTask> CurrentTaskBatch = new();
 
         // Constructor
-        public ProcessControl(LykosController parent)
+        public ProcessControl()
         {
-            this.ct = parent;
+        }
+
+        // Initializes temp directories to prepare for processing
+        private void SetupTemp()
+        {
+            Cache.Create();
+            Cache.DeployFaceFX();
+            Cache.DeployFonixData();
         }
     }
 }
