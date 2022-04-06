@@ -4,6 +4,8 @@ using CsvHelper.FastDynamic;
 using System.Data;
 using System.Globalization;
 using System.Text;
+using ABI.Windows.Media.Playback;
+using UtfUnknown;
 
 namespace Project_Lykos
 {
@@ -248,6 +250,58 @@ namespace Project_Lykos
                 throw new Exception("The file is not a CSV file.");
             }
 
+            // Check that the file is UTF-8 or ASCII (subset of UTF-8)
+            var result = CharsetDetector.DetectFromFile(filepath);
+            var resultDetected = result.Detected;
+            var encodingName = resultDetected.EncodingName;
+            var encoding = resultDetected.Encoding;
+            var confidenceLevel = resultDetected.Confidence;
+
+            // Convert float to percentage
+            var percent = confidenceLevel.ToString("0%");
+
+            if (!Equals(encoding, Encoding.ASCII) && !Equals(encoding, Encoding.UTF8))
+            {
+                var text = @"The selected CSV file was detected to be in a " + encodingName.ToUpper() + " encoded format with " + percent + " confidence. " + 
+                           "Only the UTF8 and ASCII formats are officially supported. " +
+                           "You may choose to ignore this warning and attempt to read the file anyway, but the extracted text lines may be incorrect or corrupt.";
+                var title = @"Encoding Format Warning";
+                var dialogResult = MessageBox.Show(text, title, MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button3);
+                switch (dialogResult)
+                {
+                    case DialogResult.Abort:
+                        return "0";
+                    case DialogResult.Retry:
+                        throw new Exception("Retry failed");
+                    case DialogResult.Ignore:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(dialogResult));
+                }
+            }
+            else if ((Equals(encoding, Encoding.ASCII) || Equals(encoding, Encoding.UTF8)) && confidenceLevel > 0.9)
+            {
+                var text = @"The selected CSV file was detected to be in a " + encodingName.ToUpper() + " encoded format with " + percent + " confidence. " +
+                           "Only the UTF8 and ASCII formats are officially supported. " +
+                           "You may choose to ignore this warning and attempt to read the file anyway, but the extracted text lines may be incorrect or corrupt.";
+                var title = @"Encoding Format Warning";
+                var dialogResult = MessageBox.Show(text, title, MessageBoxButtons.AbortRetryIgnore, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button3);
+                switch (dialogResult)
+                {
+                    case DialogResult.Abort:
+                        return "0";
+                    case DialogResult.Retry:
+                        throw new Exception("Retry failed");
+                    case DialogResult.Ignore:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(dialogResult));
+                }
+            }
+
+
+            // Show warning style messagebox:
+            
             // Check if the file is readable by reading (up to) 15 lines
             // Create array list of string for lines read
             List<string> lines;

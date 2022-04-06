@@ -84,10 +84,12 @@ namespace Project_Lykos
          * Checks if the CSV file exists, then set the Filepath_Csv
          * Returns "0" if valid, or a String of invalid message
          */
-        public async Task SetFilepathCsvAsync(string filepath)
+        public async Task<bool> SetFilepathCsvAsync(string filepath)
         {
-            Delimiter = await ValidateCSV(filepath);
+            var detectedDelimiter = await ValidateCSV(filepath);
+            if (detectedDelimiter == "0") return false;
             Filepath_Csv = filepath;
+            return true;
         }
 
         // Method to load the CSV file into the DataTable
@@ -99,7 +101,7 @@ namespace Project_Lykos
                 new DataColumn("text", typeof(string)),
                 new DataColumn("out_path", typeof(string))
             };
-            var readTask = ReadCsvAsyncV2(filepath, headerColumns, progress);
+            var readTask = ReadCsvAsync(filepath, headerColumns, progress);
             CsvData = await readTask;
         }
         

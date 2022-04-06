@@ -116,17 +116,24 @@ namespace Project_Lykos
 
             var testSetPath = Task.Run(async () =>
             {
+                var csvCheckResult = false;
                 try
                 {
-                    await ct.SetFilepathCsvAsync(filename);
+                    csvCheckResult = await ct.SetFilepathCsvAsync(filename);
                 }
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message, @"Error in initial reading of CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+                return csvCheckResult;
             });
 
-            await testSetPath;
+            var returnedResult = await testSetPath;
+
+            if (!returnedResult)
+            {
+                return;
+            }
 
             var loadCSV = Task.Run(async () =>
             {
@@ -138,7 +145,7 @@ namespace Project_Lykos
                 catch (Exception ex)
                 {
                     MessageBox.Show(ex.Message, @"Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    await ResetUIProgress(1000);
+                    await ResetUIProgress(2000);
                 }
             });
 
@@ -150,7 +157,7 @@ namespace Project_Lykos
                 UpdateComboFormats();
             }
 
-            await ResetUIProgress(1000);
+            await ResetUIProgress(2000);
         }
 
         // Asynchronous Method that clears the progress related elements after a certain time passed in the method
@@ -160,7 +167,7 @@ namespace Project_Lykos
             if (delay is < 0 or > 5000) throw new Exception("Invalid delay UI action.");
             var resetElements = Task.Run(() =>
             {
-                Task.Delay(delay);
+                Task.Delay(TimeSpan.FromMilliseconds(delay));
                 progress_total.BeginInvoke((MethodInvoker)delegate ()
                 {
                     progress_total.Value = 0;
