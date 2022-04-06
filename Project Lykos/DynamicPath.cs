@@ -20,6 +20,18 @@ public class DynamicPath
         }
     }
 
+    public bool Exists()
+    {
+        return string.IsNullOrEmpty(Path);
+    }
+
+    public void Clear()
+    {
+        Path = "";
+        ShortPath = "";
+        FileName = "";
+    }
+
     public void SetPath(string path)
     {
         SetShortPath(path);
