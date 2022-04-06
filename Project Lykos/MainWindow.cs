@@ -32,7 +32,6 @@ namespace Project_Lykos
             combo_multiprocess_count.SelectedIndex = 0;
 
             ct = new LykosController();
-            pc = new ProcessControl();
         }
 
         // Browse Source button

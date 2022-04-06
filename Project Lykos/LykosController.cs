@@ -16,13 +16,27 @@ namespace Project_Lykos
         public string? Filepath_Source { get; private set; }
         public string? Filepath_Output { get; private set; }
         public string? Filepath_Csv { get; private set; }
-        
+
+        // Dynamic Paths
+        private readonly DynamicPath DynPathSource = new();
+        private readonly DynamicPath DynPathOutput = new();
+        private readonly DynamicPath DynPathCSV = new();        
+
         // Configs
         public string Delimiter { get; set; } = "";
 
         // Data
         private DataTable CsvData { get; set; } = new DataTable();
 
+        // Process Controller
+        private readonly ProcessControl _pc;
+
+        // Constructor
+        public LykosController()
+        {
+            _pc = new ProcessControl(this);
+        }
+        
         // Checks if the CSV is loaded by checking the length of the DataTable
         public bool IsCsvLoaded()
         {
