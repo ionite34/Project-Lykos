@@ -13,7 +13,7 @@ namespace Project_Lykos
         public string TempDir { get; private set; }
         public string FullTempDir { get; private set; }
         public string WrapDir { get; private set; }
-        private readonly string FaceFXName = "FaceFX_Task.exe";
+        public const string FaceFXName = "FaceFX_Task.exe";
         public string FaceFXPath { get; private set; }
         public string AudioDir { get; private set; }
         public string AudioResamplingCacheDir { get; private set; }
@@ -48,19 +48,15 @@ namespace Project_Lykos
         public void CleanupTemp()
         {
             // Safety check
-            if (FullTempDir.Contains(Path.GetTempPath()) && FullTempDir.Contains("Lykos_Temp"))
+            if (!FullTempDir.Contains(Path.GetTempPath()) || !FullTempDir.Contains("Lykos_Temp")) return;
+            if (!Directory.Exists(FullTempDir)) return;
+            try
             {
-                if (Directory.Exists(FullTempDir))
-                {
-                    try
-                    {
-                        Directory.Delete(FullTempDir, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new IOException("Failed to cleanup temp directory: " + ex);
-                    }
-                }
+                Directory.Delete(FullTempDir, true);
+            }
+            catch (Exception ex)
+            {
+                throw new IOException("Failed to cleanup temp directory: " + ex);
             }
 
         }
@@ -69,20 +65,18 @@ namespace Project_Lykos
         // create a hidden temp folder.
         public void CreateTempFolder()
         {
-            if (!Directory.Exists(FullTempDir))
+            if (Directory.Exists(FullTempDir)) return;
+            try
             {
-                try
-                {
-                    Directory.CreateDirectory(FullTempDir);
-                    // Create a subfolder called 'Wrapper' for the exe file
-                    Directory.CreateDirectory(Path.Join(FullTempDir, "Wrapper"));
-                    // Create a subfolder called 'Source_Audio' for the converted audio files for the current batch
-                    Directory.CreateDirectory(Path.Join(FullTempDir, "Source_Audio"));
-                }
-                catch (Exception ex)
-                {
-                    throw new IOException("Failed to create temp directory: " + ex);
-                }
+                Directory.CreateDirectory(FullTempDir);
+                // Create a subfolder called 'Wrapper' for the exe file
+                Directory.CreateDirectory(Path.Join(FullTempDir, "Wrapper"));
+                // Create a subfolder called 'Source_Audio' for the converted audio files for the current batch
+                Directory.CreateDirectory(Path.Join(FullTempDir, "Source_Audio"));
+            }
+            catch (Exception ex)
+            {
+                throw new IOException("Failed to create temp directory: " + ex);
             }
         }
     }
