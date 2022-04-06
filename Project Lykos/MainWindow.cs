@@ -39,7 +39,7 @@ namespace Project_Lykos
             // Check folder path exists
             if (_ct.SetFilepath_Source(fbd.SelectedPath))
             {
-                DynPathSource.SetPath(fbd.SelectedPath);
+                _ct.DynPathSource.SetPath(fbd.SelectedPath);
                 UpdateComboFormats();
             }
             else
@@ -58,7 +58,7 @@ namespace Project_Lykos
             // Check folder path exists
             if (_ct.SetFilepath_Output(fbd.SelectedPath))
             {
-                DynPathOutput.SetPath(fbd.SelectedPath);
+                _ct.DynPathOutput.SetPath(fbd.SelectedPath);
                 UpdateComboFormats();
             }
             else
@@ -115,7 +115,7 @@ namespace Project_Lykos
 
             if (_ct.IsCsvLoaded())
             {
-                DynPathCSV.SetPath(filename);
+                _ct.DynPathCSV.SetPath(filename);
                 UpdateComboFormats();
             }
 
@@ -147,9 +147,9 @@ namespace Project_Lykos
         // Update the combo boxes depending on focus, shows short paths when out of focus, shows full paths when in focus
         private void UpdateComboFormats()
         {
-            combo_source.Text = combo_source.Focused ? DynPathSource.Path : DynPathSource.ShortPath;
-            combo_output.Text = combo_output.Focused ? DynPathOutput.Path : DynPathOutput.ShortPath;
-            combo_csv.Text = combo_csv.Focused ? DynPathCSV.Path : DynPathCSV.FileName;
+            combo_source.Text = combo_source.Focused ? _ct.DynPathSource.Path : _ct.DynPathSource.ShortPath;
+            combo_output.Text = combo_output.Focused ? _ct.DynPathOutput.Path : _ct.DynPathOutput.ShortPath;
+            combo_csv.Text = combo_csv.Focused ? _ct.DynPathCSV.Path : _ct.DynPathCSV.FileName;
         }
 
         private void Combo_Any_Enter_Leave(object sender, EventArgs e)
