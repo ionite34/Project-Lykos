@@ -10,6 +10,7 @@ namespace Project_Lykos
 {
     public class ProcessControl
     {
+        private readonly LykosController? ct;
         public string TempDir { get; private set; }
         public string FullTempDir { get; private set; }
         public string WrapDir { get; private set; }
@@ -22,8 +23,9 @@ namespace Project_Lykos
         public Queue<ProcessTask> CurrentTaskBatch = new();
 
         // Constructor
-        public ProcessControl()
+        public ProcessControl(LykosController? parent = null)
         {
+            this.ct = parent;
             TempDir = Path.GetTempPath();
             FullTempDir = Path.Join(TempDir, "Lykos_Temp");
             WrapDir = Path.Join(FullTempDir, "Wrapper");
