@@ -10,7 +10,7 @@ namespace Project_Lykos
 {
     public static class DependencyCheck
     {
-		public static string GetMD5Checksum(string filename)
+        private static string GetMD5Checksum(string filename)
 		{
             using var md5 = MD5.Create();
             using var stream = File.OpenRead(filename);
@@ -18,11 +18,11 @@ namespace Project_Lykos
             return BitConverter.ToString(hash).Replace("-", "");
         }
 
-        public static bool ChecksumMatchesFonixData(string filename)
+        private static bool ChecksumMatchesFonixData(string filename)
         {
-            var hash_str = GetMD5Checksum(filename);
-            string expected = "4A9D909F712AA82AA28116EE30F42431";
-            return hash_str == expected;
+            var hashStr = GetMD5Checksum(filename);
+            var expected = "4A9D909F712AA82AA28116EE30F42431";
+            return hashStr == expected;
         }
 
         public static bool CheckFonixData()
