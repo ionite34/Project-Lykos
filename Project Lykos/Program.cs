@@ -22,6 +22,8 @@ namespace Project_Lykos
                 }
             }
             Application.Run(new MainWindow());
+            // Cleanup Temp files
+            Cache.Destroy();
         }
     }
 }
