@@ -83,6 +83,7 @@
             this.button_preview.TabIndex = 0;
             this.button_preview.Text = "Preview Indexed Operations";
             this.button_preview.UseVisualStyleBackColor = true;
+            this.button_preview.Click += new System.EventHandler(this.button_preview_Click);
             // 
             // LayoutPanel_LowerButtons
             // 
