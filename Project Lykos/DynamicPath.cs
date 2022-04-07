@@ -22,7 +22,7 @@ public class DynamicPath
 
     public bool Exists()
     {
-        return string.IsNullOrEmpty(Path);
+        return !(string.IsNullOrEmpty(Path));
     }
 
     public void Clear()
