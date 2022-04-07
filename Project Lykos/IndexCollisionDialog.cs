@@ -1,0 +1,60 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Media;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace Project_Lykos
+{
+    public partial class IndexCollisionDialog : Form
+    {
+        private readonly string pathAudio;
+        public int ReturnedSelectedIndex { get; private set; }
+
+        public IndexCollisionDialog(string pathAudio, DataRow[] dataRows)
+        {
+            InitializeComponent();
+            // Configure Dialog buttons
+            button_exit.DialogResult = DialogResult.Abort;
+            button_exit.Enabled = true;
+            button_continue.DialogResult = DialogResult.Continue;
+            button_continue.Enabled = false;
+            // Set combo to display options
+            var options = dataRows.Select(r => r.Field<string>("text")).ToList();
+            combo_textChoices.DataSource = options;
+            this.pathAudio = pathAudio;
+        }
+
+        private void LinkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            try
+            {
+                using var player = new System.Media.SoundPlayer(pathAudio);
+                player.Play();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(@"Error: Could not open audio file. " + ex.Message, @"Error playing audio", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+        }
+
+        private void Combo_textChoices_SelectedValueChanged(object sender, EventArgs e)
+        {
+            button_continue.Enabled = true;
+            ReturnedSelectedIndex = combo_textChoices.SelectedIndex;
+        }
+
+        private void IndexCollisionDialog_Load(object sender, EventArgs e)
+        {
+            // Play error sound
+            SystemSounds.Exclamation.Play();
+        }
+    }
+}
