@@ -1,3 +1,4 @@
+using System.Data;
 using System.Windows.Forms.VisualStyles;
 
 namespace Project_Lykos
@@ -41,6 +42,7 @@ namespace Project_Lykos
             {
                 _ct.DynPathSource.SetPath(fbd.SelectedPath);
                 UpdateComboFormats();
+                UpdateStatus();
             }
             else
             {
@@ -60,6 +62,7 @@ namespace Project_Lykos
             {
                 _ct.DynPathOutput.SetPath(fbd.SelectedPath);
                 UpdateComboFormats();
+                UpdateStatus();
             }
             else
             {
@@ -85,6 +88,7 @@ namespace Project_Lykos
                 return;
             }
             await ParseCSV(ofd.FileName).ConfigureAwait(false);
+            await UpdateStatus();
         }
 
         // Parse CSV
@@ -144,6 +148,19 @@ namespace Project_Lykos
             });
         }
 
+        // Update buttons
+        private async Task UpdateStatus()
+        {
+            await Task.Run(() =>
+            {
+                button_preview.BeginInvoke((MethodInvoker)delegate ()
+                {
+                    button_preview.Enabled = _ct.ReadyIndex();
+                    button_start_batch.Enabled = _ct.ReadyBatch();
+                });
+            });
+        }
+
         // Update the combo boxes depending on focus, shows short paths when out of focus, shows full paths when in focus
         private void UpdateComboFormats()
         {
@@ -155,6 +172,22 @@ namespace Project_Lykos
         private void Combo_Any_Enter_Leave(object sender, EventArgs e)
         {
             UpdateComboFormats();
+        }
+
+        private async void button_preview_Click(object sender, EventArgs e)
+        {
+            // Start file indexing
+            progress_total.Style = ProgressBarStyle.Marquee;
+            try
+            {
+                await Task.Run(() => { _ct.IndexSource(); });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, @"Error During File Indexing", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+
+            progress_total.Style = ProgressBarStyle.Continuous;
         }
     }
 }
