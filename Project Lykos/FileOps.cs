@@ -107,7 +107,15 @@ namespace Project_Lykos
 
                         if (T == typeof(string))
                         {
-                            row[index] = csv.GetField<string>(headerName);
+                            // If we're in the 'out_path' column, convert all forward slashes to backslashes
+                            if (headerName == "out_path")
+                            {
+                                row[headerName] = csv.GetField<string>(headerName).Replace('/', '\\');
+                            }
+                            else
+                            {
+                                row[headerName] = csv.GetField<string>(headerName);
+                            }
                         }
                         else if (T == typeof(int))
                         {
