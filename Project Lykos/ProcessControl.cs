@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,11 +12,18 @@ namespace Project_Lykos
     public class ProcessControl
     {
         // Stores a queue of tasks
-        public Queue<ProcessTask> CurrentTaskBatch = new();
-
+        public Queue<ProcessTask> CurrentTaskBatch { get; }
+        
         // Constructor
         public ProcessControl()
         {
+            CurrentTaskBatch = new Queue<ProcessTask>();
+        }
+
+        // Sets task batch from DataTable
+        public DataTable GenerateTasks(DataTable dataTable)
+        {
+            return new DataTable();
         }
 
         // Initializes temp directories to prepare for processing

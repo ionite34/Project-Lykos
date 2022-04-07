@@ -9,16 +9,11 @@ namespace Project_Lykos
 {
     public class ProcessTask
     {
-        // Parent
-        private readonly ProcessControl pc;
-
         // Identity
         public Identity TaskIdentity { get; set; }
 
         // Defines the ProcessTask object for the queue
-        public string TaskName { get; set; } = "";
         public string WavSourcePath { get; set; } = "";
-        public string WavOutputPath { get; set; } = "";
         public string WavResamplingCachePath { get; set; }
         public string LipOutputPath { get; set; } = "";
         public bool UseFaceFXAudioSampler { get; set; } = false;
@@ -30,7 +25,6 @@ namespace Project_Lykos
         public Command? SubProcess { get; private set; }
         public string Arg_Type { get; private set; } = "Skyrim";
         public string Arg_Lang { get; private set; } = "USEnglish";
-        public string Arg_FonixDataPath { get; private set; }
 
         // Timing and termination
         public DateTime StartTime { get; private set; }
@@ -38,22 +32,14 @@ namespace Project_Lykos
 
 
         // Constructor
-        // We pass in the ProcessControl parent to get some directories
-        public ProcessTask(ProcessControl parent)
+        public ProcessTask()
         {
-            // Set parent
-            pc = parent;
-
             // Create Identity
             TaskIdentity = new Identity();
 
             // Set the WaveResamplingCachePath to the parent's WaveResamplingCachePath plus the file format:
             // "<UUID>_ResampledTemp.wav"
             WavResamplingCachePath = Path.Join(Cache.AudioResamplingDir, TaskIdentity.UUID, "_ResampledTemp.wav");
-
-            // Set Args
-            Arg_FonixDataPath = Path.Join(Directory.GetCurrentDirectory(), "FonixData.cdf");
-
         }
 
         // Sets WavSourcePath from FileName only
