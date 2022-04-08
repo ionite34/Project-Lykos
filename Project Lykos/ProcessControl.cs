@@ -12,7 +12,7 @@ namespace Project_Lykos
     public class ProcessControl
     {
         // Stores a queue of tasks
-        public Queue<ProcessTask> CurrentTaskBatch { get; }
+        public Queue<ProcessTask> CurrentTaskBatch { get; set; }
         
         // Constructor
         public ProcessControl()
