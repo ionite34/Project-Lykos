@@ -9,15 +9,12 @@ using ABI.Windows.System;
 
 namespace Project_Lykos
 {
-    /// <summary>
-    /// Static class for linking UI elements and progress reporting
-    /// </summary>
     public static class ElementLink
     {
-
         /// <summary>
         /// Returns an IProgress object that updates provided UI elements
         /// </summary>
+        /// <param name="window"></param>
         /// <param name="progressbar"></param>
         /// <param name="value"></param>
         /// <param name="status"></param>
@@ -26,10 +23,12 @@ namespace Project_Lykos
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public static IProgress<(double current, double total)> LinkProgressBar2L(ProgressBar progressbar, Label value, Label status, bool usePercent = false, bool displayTotal = false)
+        public static IProgress<(double current, double total)> LinkProgressBar2L(MainWindow window, ProgressBar progressbar, Label value, Label status, string statusText, bool usePercent = false, bool displayTotal = false)
         {
             var progress = new Progress<(double current, double total)>(update =>
             {
+                if (!window.Progress1Running) return;
+                
                 if (usePercent && displayTotal)
                 {
                     throw new InvalidOperationException("Cannot use both percent and total");
@@ -46,8 +45,8 @@ namespace Project_Lykos
                 var totalValue = (int)total;
                 var curPercent = progressbar.Value / total;
                 
-                // If the double values are equal, override the int casting values.
-                if (current == total)
+                // If the double values are above 99.0%, round them to 100.0%
+                if (current / total > 0.99)
                 {
                     totalValue = (int) total;
                     newValue = (int) total;
@@ -56,6 +55,11 @@ namespace Project_Lykos
 
                 progressbar.BeginInvoke((MethodInvoker)delegate ()
                 {
+                    if (progressbar.Style != ProgressBarStyle.Continuous)
+                    {
+                        progressbar.Style = ProgressBarStyle.Continuous;
+                    }
+                    
                     if (progressbar.Maximum != totalValue)
                     {
                         progressbar.Maximum = totalValue;
@@ -93,36 +97,33 @@ namespace Project_Lykos
                         }
                     }
 
-                    // Initialize the labels as visible.
-                    if (!(value.Visible))
-                    {
-                        value.Visible = true;
-                    }
-                    if (!(status.Visible))
-                    {
-                        status.Visible = true;
-                    }
+                    // Labels
+                    if (statusText != status.Text) status.Text = statusText;
+                    if (!(value.Visible)) value.Visible = true;
+                    if (!(status.Visible)) status.Visible = true;
                 });
             });
             return progress;
         }
 
 
-        /// <summary>
-        /// Returns an IProgress object that updates provided UI elements
-        /// </summary>
-        /// <param name="progressbar"></param>
-        /// <param name="value"></param>
-        /// <param name="status"></param>
-        /// <param name="usePercent"></param>
-        /// <param name="displayTotal"></param>
-        /// <returns></returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="IndexOutOfRangeException"></exception>
-        public static IProgress<(int current, int total)> LinkProgressBarInt2L(ProgressBar progressbar, Label value, Label status, bool usePercent = false, bool displayTotal = false)
+    /// <summary>
+    /// Returns an IProgress object that updates provided UI elements
+    /// </summary>
+    /// <param name="window"></param>
+    /// <param name="progressbar"></param>
+    /// <param name="value"></param>
+    /// <param name="status"></param>
+    /// <param name="usePercent"></param>
+    /// <param name="displayTotal"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidOperationException"></exception>
+    /// <exception cref="IndexOutOfRangeException"></exception>
+    public static IProgress<(int current, int total)> LinkProgressBarInt2L(MainWindow window, ProgressBar progressbar, Label value, Label status, bool usePercent = false, bool displayTotal = false)
         {
             var progress = new Progress<(int current, int total)>(update =>
             {
+                if (!window.Progress1Running) return;
                 if (usePercent && displayTotal)
                 {
                     throw new InvalidOperationException("Cannot use both percent and total");
@@ -141,6 +142,11 @@ namespace Project_Lykos
 
                 progressbar.BeginInvoke((MethodInvoker)delegate ()
                 {
+                    if (progressbar.Style != ProgressBarStyle.Continuous)
+                    {
+                        progressbar.Style = ProgressBarStyle.Continuous;
+                    }
+                    
                     if (progressbar.Maximum != totalValue)
                     {
                         progressbar.Maximum = totalValue;
