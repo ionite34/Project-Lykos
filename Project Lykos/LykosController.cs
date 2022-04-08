@@ -82,12 +82,10 @@ namespace Project_Lykos
          * Checks if the CSV file exists, then set the Filepath_Csv
          * Returns "0" if valid, or a String of invalid message
          */
-        public async Task<bool> SetFilepathCsvAsync(string filepath)
+        public async Task SetFilepathCsvAsync(string filepath)
         {
-            var detectedDelimiter = await ValidateCSV(filepath);
-            if (detectedDelimiter == "0") return false;
+            Delimiter = await ValidateCSV(filepath);
             DynPathCSV.SetPath(filepath);
-            return true;
         }
 
 
@@ -244,9 +242,7 @@ namespace Project_Lykos
         // We do this asynchronously with progress reporting for the progress bar
         public async Task LoadCsvAsync(string filepath, IProgress<(double current, double total)> progress)
         {
-            // var readTask = ReadCsvAsync(filepath, headerColumns, progress);
-            var readTask = ReadCsvAsync(filepath, "out_path", "text", progress);
-            CsvData = await readTask;
+            CsvData = await FileOps.ReadCsvAsync(filepath, "out_path", "text", progress).ConfigureAwait(false);
         }
     }
 }
