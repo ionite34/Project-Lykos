@@ -1,6 +1,5 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
-using CsvHelper.FastDynamic;
 using System.Data;
 using System.Globalization;
 using System.Text;
@@ -72,7 +71,9 @@ namespace Project_Lykos
         /// <exception cref="Exception"></exception>
         public static async Task<DataTable> ReadCsvAsync(string filePath, string pathHeader, string textHeader, IProgress<(double current, double total)> progress)
         {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
+            // Start a timer with System.Diagnostics
+            var stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
             DataTable dt = new();
             dt.Columns.Add(@"path", typeof(string));
             dt.Columns.Add(@"sub_folder", typeof(string));
@@ -84,16 +85,21 @@ namespace Project_Lykos
                 Encoding = Encoding.UTF8, // Our file uses UTF-8 encoding
                 Delimiter = "," // The delimiter is a comma
             };
-
+            
+            // Count lines in file
+            var fileTotalLines = InfoDetector.FastCountLines(filePath);
+            
             await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using var reader = new StreamReader(stream, Encoding.UTF8);
             using var csv = new CsvReader(reader, configuration);
-            await csv.ReadAsync(); // Starts Asynchronous Read
+            await csv.ReadAsync().ConfigureAwait(false); // Starts Asynchronous Read
             csv.ReadHeader(); // Reads header only
             var lastReportTime = DateTime.Now; // Last progress report time
+            var lastLine = 0; // Current line number
             // ReSharper disable once MethodHasAsyncOverload
             while (csv.Read())
             {
+                lastLine++;
                 var row = dt.NewRow();
                 var path = csv.GetField<string>(pathHeader);
                 row[0] = path.Replace('/', '\\');
@@ -101,46 +107,46 @@ namespace Project_Lykos
                 row[2] = Path.GetFileName(path);
                 row[3] = csv.GetField<string>(textHeader);
                 dt.Rows.Add(row);
-                // Report progress if time elapsed more than 370ms
-                if (!(DateTime.Now.Subtract(lastReportTime).TotalMilliseconds > 370)) continue;
-                progress.Report((stream.Position, stream.Length));
+                // Report progress if time elapsed more than 95ms
+                if (DateTime.Now.Subtract(lastReportTime).TotalMilliseconds < 19) continue;
+                progress.Report((lastLine, fileTotalLines));
                 lastReportTime = DateTime.Now;
             }
-            sw.Stop();
-            var elapsed = sw.Elapsed.TotalMilliseconds;
-            Console.WriteLine(@"[v1] Time taken: {0}ms", sw.Elapsed.TotalMilliseconds);
+            stopwatch.Stop();
+            var time = stopwatch.ElapsedMilliseconds;
             return dt;
         }
-
-        // Detects if a target CSV file is valid, is so, returns the delimiter
-        // Otherwise throw an exception
+        
+        /// <summary>
+        /// Detect the validity of a csv file.
+        /// </summary>
+        /// <param name="filepath"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public static async Task<string> ValidateCSV(string filepath)
         {
             if (string.IsNullOrEmpty(filepath))
-            {
                 throw new Exception("Filepath cannot be null or empty");
-            }
 
             // Check if the filepath is invalid
             if (!File.Exists(filepath))
-            {
                 throw new Exception("The file does not exist.");
-            }
 
             // Check if the file is not a CSV file
             if (!filepath.EndsWith(".csv"))
-            {
                 throw new Exception("The file is not a CSV file.");
-            }
 
+            // Check file is not empty
+            if (new FileInfo(filepath).Length == 0)
+                throw new Exception("The file is empty.");
+            
             // Check that the file is UTF-8 or ASCII (subset of UTF-8)
             var result = CharsetDetector.DetectFromFile(filepath);
+            if (result.Detected == null) throw new Exception("No valid encoding was found.");
             var resultDetected = result.Detected;
             var encodingName = resultDetected.EncodingName;
             var encoding = resultDetected.Encoding;
             var confidenceLevel = resultDetected.Confidence;
-
-            // Convert float to percentage
             var percent = confidenceLevel.ToString("0%");
 
             if (!Equals(encoding, Encoding.ASCII) && !Equals(encoding, Encoding.UTF8) && confidenceLevel > 0.5)
@@ -175,7 +181,7 @@ namespace Project_Lykos
             }
 
             // Predict the delimiter
-            var delimiterChar = CSVDelimiterDetector.DetectSeparator(lines);
+            var delimiterChar = InfoDetector.DetectSeparator(lines);
 
             if (delimiterChar == '\0')
             {
