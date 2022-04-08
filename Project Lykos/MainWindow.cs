@@ -1,17 +1,29 @@
+using System.ComponentModel;
+
 namespace Project_Lykos
 {
     using static ElementLink;
     public partial class MainWindow : Form
     {
-        private readonly LykosController _ct;
+        private readonly LykosController ct = new();
+        private readonly State state;
 
+        public bool Progress1Running { get; set; } = false;
+
+        // Background Workers
+        private readonly BackgroundWorker worker = new()
+        {
+            WorkerSupportsCancellation = false,
+            WorkerReportsProgress = true,
+        };
+        
         // Tooltip
         private readonly ToolTip _labelTips = new();
 
         public MainWindow()
         {
             InitializeComponent();
-
+            
             // Help text
             _labelTips.ToolTipIcon = ToolTipIcon.Info;
             _labelTips.IsBalloon = true;
@@ -23,8 +35,9 @@ namespace Project_Lykos
             combo_csvDelimiter.SelectedIndex = 0;
             combo_multiprocess_count.DataSource = Enumerable.Range(1, Environment.ProcessorCount).ToList();
             combo_multiprocess_count.SelectedIndex = 0;
-
-            _ct = new LykosController();
+            
+            // Initialize state
+            state = new State(this);
         }
 
         // Browse Source button
@@ -37,7 +50,7 @@ namespace Project_Lykos
             // Process
             try
             {
-                await _ct.SetFilepath_Source(fbd.SelectedPath);
+                await Task.Run(() => ct.SetFilepath_Source(fbd.SelectedPath));
                 UpdateComboFormats();
                 UpdateStatus();
             }
@@ -48,25 +61,28 @@ namespace Project_Lykos
         }
 
         // Browse Output button
-        private void Button_browse_output_Click(object sender, EventArgs e)
+        private async void Button_browse_output_Click(object sender, EventArgs e)
         {
             // Create a new FolderBrowserDialog and show
             FolderBrowserDialog fbd = new();
             var result = fbd.ShowDialog();
             if (result != DialogResult.OK) return;
             // Process
-            _ct.SetFilepath_Output(fbd.SelectedPath);
+            ct.SetFilepath_Output(fbd.SelectedPath);
             UpdateComboFormats();
             UpdateStatus();
             try
             {
-                _ct.SetFilepath_Output(fbd.SelectedPath);
-                UpdateComboFormats();
-                UpdateStatus();
+                await Task.Run(() => ct.SetFilepath_Output(fbd.SelectedPath));
             }
             catch (Exception exception)
             {
                 MessageBox.Show(exception.Message, @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                UpdateComboFormats();
+                UpdateStatus();
             }
         }
 
@@ -80,22 +96,31 @@ namespace Project_Lykos
                 Title = @"Select the .csv file used for voice generation",
                 CheckFileExists = true,
             };
-            var result = ofd.ShowDialog();
-            if (result != DialogResult.OK) return;
-            if (!(File.Exists(ofd.FileName)))
-            {
-                MessageBox.Show(@"The selected file does not exist. Or cannot be reached.", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            await ParseCSV(ofd.FileName);
-            UpdateStatus();
+            if (ofd.ShowDialog() != DialogResult.OK) return;
+            await ParseCSV(ofd.FileName).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Starts the index preview process
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void button_preview_Click(object sender, EventArgs e)
         {
-            button_preview.Enabled = false;
-            // Start file indexing
+            state.FreezeButtons();
             await DoIndex();
+            state.RestoreButtons();
+        }
+        
+        /// <summary>
+        /// Starts the batch process
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private async void button_start_batch_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
         
         // Parse CSV
@@ -103,46 +128,40 @@ namespace Project_Lykos
         {
             try
             {
-                var csvCheckResult = await _ct.SetFilepathCsvAsync(filename);
-                if (!csvCheckResult) return;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, @"Error in initial reading of CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-            var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
-
-            try
-            {
-                var lb1 = label_progress_status1A;
-                lb1.Text = @"Progress: ";
-                lb1.Visible = true;
-                await _ct.LoadCsvAsync(filename, progress);
+                state.FreezeButtons();
+                combo_csv.Text = "";
+                label_progress_status1A.Text = @"Checking file format...";
+                label_progress_status1A.Visible = true;
+                progress_total.Style = ProgressBarStyle.Marquee;
+                progress_total.MarqueeAnimationSpeed = 5;
+                await Task.Run(() => ct.SetFilepathCsvAsync(filename));
+                var progress = LinkProgressBar2L(this, progress_total, label_progress_value1A, label_progress_status1A, @"Parsing CSV lines: ", false, true);
+                Progress1Running = true;
+                await Task.Run(() => ct.LoadCsvAsync(filename, progress));
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, @"Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                await Task.Run(ResetUIProgress);
             }
-
-            if (_ct.IsCsvLoaded())
+            finally
             {
-                _ct.DynPathCSV.SetPath(filename);
+                state.RestoreButtons();
+                ResetUIProgress();
                 UpdateComboFormats();
+                UpdateStatus();
             }
-
-            await Task.Run(ResetUIProgress);
         }
 
         // Asynchronous Method that clears the progress related elements after a certain time passed in the method
         // We do this because IProgress is also async 
         private void ResetUIProgress()
         {
+            Progress1Running = false;
             var task = (MethodInvoker) delegate
             {
                 progress_total.Value = 0;
                 progress_total.Maximum = 100;
+                progress_total.Style = ProgressBarStyle.Continuous;
                 label_progress_value1A.Text = "";
                 label_progress_value1A.Visible = false;
                 label_progress_status1A.Text = "";
@@ -161,19 +180,23 @@ namespace Project_Lykos
         // Update buttons
         private void UpdateStatus()
         {
-            button_preview.BeginInvoke((MethodInvoker)delegate
+            var task = (MethodInvoker) delegate
             {
-                button_preview.Enabled = _ct.ReadyIndex();
-                button_start_batch.Enabled = _ct.ReadyBatch();
-            });
+                button_preview.Enabled = ct.ReadyIndex();
+                button_start_batch.Enabled = ct.ReadyBatch();
+            };
+            if (this.InvokeRequired)
+                this.BeginInvoke(task);
+            else
+                task();
         }
 
         // Update the combo boxes depending on focus, shows short paths when out of focus, shows full paths when in focus
         private void UpdateComboFormats()
         {
-            combo_source.Text = combo_source.Focused ? _ct.DynPathSource.Path : _ct.DynPathSource.ShortPath;
-            combo_output.Text = combo_output.Focused ? _ct.DynPathOutput.Path : _ct.DynPathOutput.ShortPath;
-            combo_csv.Text = combo_csv.Focused ? _ct.DynPathCSV.Path : _ct.DynPathCSV.FileName;
+            combo_source.Text = combo_source.Focused ? ct.DynPathSource.Path : ct.DynPathSource.ShortPath;
+            combo_output.Text = combo_output.Focused ? ct.DynPathOutput.Path : ct.DynPathOutput.ShortPath;
+            combo_csv.Text = combo_csv.Focused ? ct.DynPathCSV.Path : ct.DynPathCSV.FileName;
         }
 
         private void Combo_Any_Enter_Leave(object sender, EventArgs e)
@@ -187,11 +210,11 @@ namespace Project_Lykos
             try
             {
                 var lb1 = label_progress_status1A;
-                lb1.Text = @"Progress: ";
+                lb1.Text = @"Indexing: ";
                 lb1.Visible = true;
-                var progress = LinkProgressBarInt2L(progress_total, label_progress_value1A, label_progress_status1A, true);
-                //await Task.Run(() => _ct.IndexSource(progress));
-                result = await Task.Run(() => _ct.IndexSource(progress)) ;
+                var progress = LinkProgressBarInt2L(this, progress_total, label_progress_value1A, label_progress_status1A, true);
+                Progress1Running = true;
+                result = await Task.Run(() => ct.IndexSource(progress)) ;
             }
             catch (Exception ex)
             {
@@ -201,11 +224,6 @@ namespace Project_Lykos
             if (result.Count == 0) return;
             MessageBox.Show(result[0]);
             MessageBox.Show(result[1]);
-        }
-
-        private async void button_start_batch_Click(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
         }
     }
 }
