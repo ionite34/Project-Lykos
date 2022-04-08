@@ -245,7 +245,7 @@ namespace Project_Lykos
         public async Task LoadCsvAsync(string filepath, IProgress<(double current, double total)> progress)
         {
             // var readTask = ReadCsvAsync(filepath, headerColumns, progress);
-            var readTask = ReadCsvAsyncV2(filepath, "out_path", "text", progress);
+            var readTask = ReadCsvAsync(filepath, "out_path", "text", progress);
             CsvData = await readTask;
         }
     }
