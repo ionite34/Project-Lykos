@@ -112,55 +112,6 @@ namespace Project_Lykos
             return dt;
         }
 
-        /// <summary>
-        /// Reads CSV Asynchronously with a provided list of headers provided as DataColumns, returns DataTable.
-        /// v2 -> uses new native datatable method
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="headersToRecord"></param>
-        /// <param name="progress"></param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        public static async Task<DataTable> ReadCsvAsyncV2(string filePath, string pathHeader, string textHeader, IProgress<(double current, double total)> progress)
-        {
-            var sw = System.Diagnostics.Stopwatch.StartNew();
-            DataTable dt = new();
-            dt.Columns.Add(@"path", typeof(string));
-            dt.Columns.Add(@"sub_folder", typeof(string));
-            dt.Columns.Add(@"file_name", typeof(string));
-            dt.Columns.Add(@"text", typeof(string));
-            
-            var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
-            {
-                Encoding = Encoding.UTF8, // Our file uses UTF-8 encoding
-                Delimiter = "," // The delimiter is a comma
-            };
-            
-            await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-            using var reader = new StreamReader(stream, Encoding.UTF8);
-            using var csvReader = new CsvReader(reader, configuration);
-            var records = csvReader.EnumerateDynamicRecordsAsync();
-            var lastReportTime = DateTime.Now; // Last progress report time
-            await foreach (var line in records)
-            {
-                var row = dt.NewRow();
-                var path = line[pathHeader].ToString();
-                row[0] = path.Replace('/', '\\');
-                row[1] = Path.GetFileName(Path.GetDirectoryName(path));
-                row[2] = Path.GetFileName(path);
-                row[3] = line[textHeader].ToString();
-                dt.Rows.Add(row);
-                // Report progress if time elapsed more than 370ms
-                if (!(DateTime.Now.Subtract(lastReportTime).TotalMilliseconds > 370)) continue;
-                progress.Report((stream.Position, stream.Length));
-                lastReportTime = DateTime.Now;
-            }
-            sw.Stop();
-            var elapsed = sw.Elapsed.TotalMilliseconds;
-            Console.WriteLine(@"[v2] Time taken: {0}ms", sw.Elapsed.TotalMilliseconds);
-            return dt;
-        }
-
         // Detects if a target CSV file is valid, is so, returns the delimiter
         // Otherwise throw an exception
         public static async Task<string> ValidateCSV(string filepath)
