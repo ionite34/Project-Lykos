@@ -1,6 +1,3 @@
-using System.Data;
-using System.Windows.Forms.VisualStyles;
-
 namespace Project_Lykos
 {
     using static ElementLink;
@@ -9,17 +6,17 @@ namespace Project_Lykos
         private readonly LykosController _ct;
 
         // Tooltip
-        private readonly ToolTip labelTips = new();
+        private readonly ToolTip _labelTips = new();
 
         public MainWindow()
         {
             InitializeComponent();
 
             // Help text
-            labelTips.ToolTipIcon = ToolTipIcon.Info;
-            labelTips.IsBalloon = true;
-            labelTips.ShowAlways = true;
-            labelTips.SetToolTip(label_multiprocess_count, "Number of processes to run in parallel");
+            _labelTips.ToolTipIcon = ToolTipIcon.Info;
+            _labelTips.IsBalloon = true;
+            _labelTips.ShowAlways = true;
+            _labelTips.SetToolTip(label_multiprocess_count, "Number of processes to run in parallel");
 
             // Set Default state for Combo Boxes
             combo_audio_preprocessing.SelectedIndex = 2;
@@ -31,22 +28,22 @@ namespace Project_Lykos
         }
 
         // Browse Source button
-        private void Button_browse_source_Click(object sender, EventArgs e)
+        private async void Button_browse_source_Click(object sender, EventArgs e)
         {
             // Create a new FolderBrowserDialog and show
             FolderBrowserDialog fbd = new();
             var result = fbd.ShowDialog();
             if (result != DialogResult.OK) return;
-            // Check folder path exists
-            if (_ct.SetFilepath_Source(fbd.SelectedPath))
+            // Process
+            try
             {
-                _ct.DynPathSource.SetPath(fbd.SelectedPath);
+                await _ct.SetFilepath_Source(fbd.SelectedPath);
                 UpdateComboFormats();
                 UpdateStatus();
             }
-            else
+            catch (Exception exception)
             {
-                MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(exception.Message, @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -57,16 +54,19 @@ namespace Project_Lykos
             FolderBrowserDialog fbd = new();
             var result = fbd.ShowDialog();
             if (result != DialogResult.OK) return;
-            // Check folder path exists
-            if (_ct.SetFilepath_Output(fbd.SelectedPath))
+            // Process
+            _ct.SetFilepath_Output(fbd.SelectedPath);
+            UpdateComboFormats();
+            UpdateStatus();
+            try
             {
-                _ct.DynPathOutput.SetPath(fbd.SelectedPath);
+                _ct.SetFilepath_Output(fbd.SelectedPath);
                 UpdateComboFormats();
                 UpdateStatus();
             }
-            else
+            catch (Exception exception)
             {
-                MessageBox.Show(@"The selected directory does not exist. Or cannot be reached.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(exception.Message, @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -87,16 +87,23 @@ namespace Project_Lykos
                 MessageBox.Show(@"The selected file does not exist. Or cannot be reached.", @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-            await ParseCSV(ofd.FileName).ConfigureAwait(false);
-            await UpdateStatus();
+            await ParseCSV(ofd.FileName);
+            UpdateStatus();
         }
 
+        private async void button_preview_Click(object sender, EventArgs e)
+        {
+            button_preview.Enabled = false;
+            // Start file indexing
+            await DoIndex();
+        }
+        
         // Parse CSV
         private async Task ParseCSV(string filename)
         {
             try
             {
-                var csvCheckResult = await Task.Run(() => _ct.SetFilepathCsvAsync(filename));
+                var csvCheckResult = await _ct.SetFilepathCsvAsync(filename);
                 if (!csvCheckResult) return;
             }
             catch (Exception ex)
@@ -105,16 +112,18 @@ namespace Project_Lykos
             }
 
             var progress = LinkProgressBar2L(progress_total, label_progress_value1A, label_progress_status1A, true);
+
             try
             {
                 var lb1 = label_progress_status1A;
                 lb1.Text = @"Progress: ";
-                await Task.Run(() => _ct.LoadCsvAsync(filename, progress));
+                lb1.Visible = true;
+                await _ct.LoadCsvAsync(filename, progress);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, @"Error Parsing CSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                await ResetUIProgress();
+                await Task.Run(ResetUIProgress);
             }
 
             if (_ct.IsCsvLoaded())
@@ -123,41 +132,39 @@ namespace Project_Lykos
                 UpdateComboFormats();
             }
 
-            await ResetUIProgress();
+            await Task.Run(ResetUIProgress);
         }
 
         // Asynchronous Method that clears the progress related elements after a certain time passed in the method
         // We do this because IProgress is also async 
-        private async Task ResetUIProgress()
+        private void ResetUIProgress()
         {
-            await Task.Run(() =>
+            var task = (MethodInvoker) delegate
             {
-                progress_total.BeginInvoke((MethodInvoker)delegate ()
-                {
-                    progress_total.Value = 0;
-                    progress_total.Maximum = 100;
-                    label_progress_value1A.Text = "";
-                    label_progress_value1A.Visible = false;
-                    label_progress_status1A.Text = "";
-                    label_progress_status1A.Visible = false;
-                    label_progress_value2A.Text = "";
-                    label_progress_value2A.Visible = false;
-                    label_progress_status2A.Text = "";
-                    label_progress_value2A.Visible = false;
-                });
-            });
+                progress_total.Value = 0;
+                progress_total.Maximum = 100;
+                label_progress_value1A.Text = "";
+                label_progress_value1A.Visible = false;
+                label_progress_status1A.Text = "";
+                label_progress_status1A.Visible = false;
+                label_progress_value2A.Text = "";
+                label_progress_value2A.Visible = false;
+                label_progress_status2A.Text = "";
+                label_progress_value2A.Visible = false;
+            };
+            if (this.InvokeRequired)
+                this.BeginInvoke(task);
+            else
+                task();
         }
 
         // Update buttons
-        private async Task UpdateStatus()
+        private void UpdateStatus()
         {
-            await Task.Run(() =>
+            button_preview.BeginInvoke((MethodInvoker)delegate
             {
-                button_preview.BeginInvoke((MethodInvoker)delegate ()
-                {
-                    button_preview.Enabled = _ct.ReadyIndex();
-                    button_start_batch.Enabled = _ct.ReadyBatch();
-                });
+                button_preview.Enabled = _ct.ReadyIndex();
+                button_start_batch.Enabled = _ct.ReadyBatch();
             });
         }
 
@@ -174,20 +181,31 @@ namespace Project_Lykos
             UpdateComboFormats();
         }
 
-        private async void button_preview_Click(object sender, EventArgs e)
+        private async Task DoIndex()
         {
-            // Start file indexing
-            progress_total.Style = ProgressBarStyle.Marquee;
+            List<string> result = new();
             try
             {
-                await Task.Run(() => { _ct.IndexSource(); });
+                var lb1 = label_progress_status1A;
+                lb1.Text = @"Progress: ";
+                lb1.Visible = true;
+                var progress = LinkProgressBarInt2L(progress_total, label_progress_value1A, label_progress_status1A, true);
+                //await Task.Run(() => _ct.IndexSource(progress));
+                result = await Task.Run(() => _ct.IndexSource(progress)) ;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, @"Error During File Indexing", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
+            ResetUIProgress();
+            if (result.Count == 0) return;
+            MessageBox.Show(result[0]);
+            MessageBox.Show(result[1]);
+        }
 
-            progress_total.Style = ProgressBarStyle.Continuous;
+        private async void button_start_batch_Click(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
         }
     }
 }

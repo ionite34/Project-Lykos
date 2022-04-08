@@ -115,6 +115,7 @@
             this.button_start_batch.TabIndex = 1;
             this.button_start_batch.Text = "Start Batch";
             this.button_start_batch.UseVisualStyleBackColor = true;
+            this.button_start_batch.Click += new System.EventHandler(this.button_start_batch_Click);
             // 
             // button3
             // 

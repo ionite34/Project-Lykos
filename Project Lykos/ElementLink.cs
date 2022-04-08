@@ -54,75 +54,55 @@ namespace Project_Lykos
                     curPercent = 1;
                 }
 
-                if (progressbar.Maximum != totalValue)
+                progressbar.BeginInvoke((MethodInvoker)delegate ()
                 {
-                    progressbar.BeginInvoke((MethodInvoker)delegate ()
+                    if (progressbar.Maximum != totalValue)
                     {
                         progressbar.Maximum = totalValue;
-                    });
-                }
-                
-                if (progressbar.Value != newValue)
-                {
-                    progressbar.BeginInvoke((MethodInvoker)delegate ()
+                    }
+
+                    if (progressbar.Value != newValue)
                     {
                         progressbar.Value = newValue;
-                    });
-                }
-                
-                if (usePercent) // Mode '0.00%'
-                {
-                    var p = curPercent.ToString("0%"); // Format percent
-                    if (value.Text != p)
+                    }
+
+                    if (usePercent) // Mode '0.00%'
                     {
-                        value.BeginInvoke((MethodInvoker) delegate()
+                        var p = curPercent.ToString("0%"); // Format percent
+                        if (value.Text != p)
                         {
                             value.Text = p;
-                        });
+                        }
                     }
-                }
-                else if (displayTotal) // Mode '0,000/0,000'
-                {
-                    var c = newValue.ToString("N0"); // Format commas
-                    var t = totalValue.ToString("N0"); // Format commas
-                    var str = $"{c}/{t}";
-                    if (value.Text != str)
+                    else if (displayTotal) // Mode '0,000/0,000'
                     {
-                        value.BeginInvoke((MethodInvoker)delegate ()
+                        var c = newValue.ToString("N0"); // Format commas
+                        var t = totalValue.ToString("N0"); // Format commas
+                        var str = $"{c}/{t}";
+                        if (value.Text != str)
                         {
                             value.Text = str;
-                        });
+                        }
                     }
-                }
-                else // Mode: '0,000'
-                {
-                    var c = newValue.ToString("N0"); // Format commas
-                    if (value.Text != c)
+                    else // Mode: '0,000'
                     {
-                        value.BeginInvoke((MethodInvoker)delegate ()
+                        var c = newValue.ToString("N0"); // Format commas
+                        if (value.Text != c)
                         {
                             value.Text = c;
-                        });
+                        }
                     }
-                }
-                
-                // Initialize the labels as visible.
-                if (!(value.Visible))
-                {
-                    value.BeginInvoke((MethodInvoker)delegate ()
+
+                    // Initialize the labels as visible.
+                    if (!(value.Visible))
                     {
                         value.Visible = true;
-
-                    });
-                }
-                if (!(status.Visible))
-                {
-                    value.BeginInvoke((MethodInvoker)delegate ()
+                    }
+                    if (!(status.Visible))
                     {
                         status.Visible = true;
-
-                    });
-                }
+                    }
+                });
             });
             return progress;
         }
@@ -159,75 +139,52 @@ namespace Project_Lykos
                 var totalValue = total;
                 var curPercent = progressbar.Value / total;
 
-                if (progressbar.Maximum != totalValue)
+                progressbar.BeginInvoke((MethodInvoker)delegate ()
                 {
-                    progressbar.BeginInvoke((MethodInvoker)delegate ()
+                    if (progressbar.Maximum != totalValue)
                     {
                         progressbar.Maximum = totalValue;
-                    });
-                }
-
-                if (progressbar.Value != newValue)
-                {
-                    progressbar.BeginInvoke((MethodInvoker)delegate ()
+                    }
+                    
+                    if (progressbar.Value != newValue)
                     {
                         progressbar.Value = newValue;
-                    });
-                }
-
-                if (usePercent) // Mode '0.00%'
-                {
-                    var p = curPercent.ToString("0%"); // Format percent
-                    if (value.Text != p)
-                    {
-                        value.BeginInvoke((MethodInvoker)delegate ()
-                        {
-                            value.Text = p;
-                        });
                     }
-                }
-                else if (displayTotal) // Mode '0,000/0,000'
-                {
-                    var c = newValue.ToString("N0"); // Format commas
-                    var t = totalValue.ToString("N0"); // Format commas
-                    var str = $"{c}/{t}";
-                    if (value.Text != str)
+                    
+                    if (usePercent) // Mode '0.00%'
                     {
-                        value.BeginInvoke((MethodInvoker)delegate ()
+                        var p = curPercent.ToString("0%"); // Format percent
+                        value.Text = p;
+                    }
+                    else if (displayTotal) // Mode '0,000/0,000'
+                    {
+                        var c = newValue.ToString("N0"); // Format commas
+                        var t = totalValue.ToString("N0"); // Format commas
+                        var str = $"{c}/{t}";
+                        if (value.Text != str)
                         {
                             value.Text = str;
-                        });
+                        }
                     }
-                }
-                else // Mode: '0,000'
-                {
-                    var c = newValue.ToString("N0"); // Format commas
-                    if (value.Text != c)
+                    else // Mode: '0,000'
                     {
-                        value.BeginInvoke((MethodInvoker)delegate ()
+                        var c = newValue.ToString("N0"); // Format commas
+                        if (value.Text != c)
                         {
                             value.Text = c;
-                        });
+                        }
                     }
-                }
-
-                // Initialize the labels as visible.
-                if (!(value.Visible))
-                {
-                    value.BeginInvoke((MethodInvoker)delegate ()
+                    
+                    // Initialize the labels as visible.
+                    if (!(value.Visible))
                     {
                         value.Visible = true;
-
-                    });
-                }
-                if (!(status.Visible))
-                {
-                    value.BeginInvoke((MethodInvoker)delegate ()
+                    }
+                    if (!(status.Visible))
                     {
                         status.Visible = true;
-
-                    });
-                }
+                    }
+                });
             });
             return progress;
         }
