@@ -3,24 +3,31 @@ namespace Project_Lykos;
 public class State
 {
     // Records current states of the form
-    private readonly Form form;
+    private readonly MainWindow window;
     // Dictionary of buttons and states
     private readonly Dictionary<Control, bool> buttonStates = new();
-    public State(Form form)
+    // List of buttons to scan
+    public List<Control> Buttons { set; get; } = new();
+    public State(MainWindow form)
     {
-        this.form = form;
+        this.window = form;
     }
 
+
+    
     /// <summary>
     /// Records the state of the buttons on the form and disables them
     /// </summary>
     public void FreezeButtons()
     {
         buttonStates.Clear();
-        foreach (var button in form.Controls.OfType<Button>())
+        foreach (var button in Buttons)
         {
             buttonStates.Add(button, button.Enabled);
-            button.Enabled = false;
+            button.BeginInvoke((MethodInvoker)delegate ()
+            {   // Disable the button
+                button.Enabled = false;
+            });
         }
     }
 
@@ -29,9 +36,12 @@ public class State
     /// </summary>
     public void RestoreButtons()
     {
-        foreach (var button in form.Controls.OfType<Button>())
+        foreach (var button in Buttons)
         {
-            button.Enabled = buttonStates[button];
+            button.BeginInvoke((MethodInvoker)delegate ()
+            {  // Re-enable the button
+                button.Enabled = buttonStates[button];
+            });
         }
     }
 }
