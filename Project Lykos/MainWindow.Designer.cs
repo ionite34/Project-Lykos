@@ -37,6 +37,8 @@
             this.listView1 = new System.Windows.Forms.ListView();
             this.progress_total = new System.Windows.Forms.ProgressBar();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
+            this.combo_outputActions = new System.Windows.Forms.ComboBox();
+            this.label_outputActions = new System.Windows.Forms.Label();
             this.combo_csvDelimiter = new System.Windows.Forms.ComboBox();
             this.label_csvDelimiter = new System.Windows.Forms.Label();
             this.combo_multiprocess_count = new System.Windows.Forms.ComboBox();
@@ -62,6 +64,10 @@
             this.label_progress_value1A = new System.Windows.Forms.Label();
             this.label_progress_status1A = new System.Windows.Forms.Label();
             this.Group_Settings = new System.Windows.Forms.GroupBox();
+            this.progress_batch = new System.Windows.Forms.ProgressBar();
+            this.tableLayoutPanel4 = new System.Windows.Forms.TableLayoutPanel();
+            this.label_batch_value = new System.Windows.Forms.Label();
+            this.label_batch_status = new System.Windows.Forms.Label();
             this.LayoutPanel_LowerButtons.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
             this.Group_Paths.SuspendLayout();
@@ -70,6 +76,7 @@
             this.Group_TotalProgress.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.Group_Settings.SuspendLayout();
+            this.tableLayoutPanel4.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_preview
@@ -140,17 +147,17 @@
             this.button_stop_batch.TabIndex = 3;
             this.button_stop_batch.Text = "Stop Batch";
             this.button_stop_batch.UseVisualStyleBackColor = true;
+            this.button_stop_batch.Click += new System.EventHandler(this.button_stop_batch_Click);
             // 
             // listView1
             // 
-            this.listView1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.listView1.Location = new System.Drawing.Point(6, 32);
+            this.listView1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.listView1.Location = new System.Drawing.Point(3, 27);
             this.listView1.Name = "listView1";
-            this.listView1.Size = new System.Drawing.Size(491, 595);
+            this.listView1.Size = new System.Drawing.Size(497, 602);
             this.listView1.TabIndex = 2;
             this.listView1.UseCompatibleStateImageBehavior = false;
+            this.listView1.View = System.Windows.Forms.View.Details;
             // 
             // progress_total
             // 
@@ -164,6 +171,8 @@
             this.tableLayoutPanel3.ColumnCount = 2;
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel3.Controls.Add(this.combo_outputActions, 1, 3);
+            this.tableLayoutPanel3.Controls.Add(this.label_outputActions, 0, 3);
             this.tableLayoutPanel3.Controls.Add(this.combo_csvDelimiter, 1, 2);
             this.tableLayoutPanel3.Controls.Add(this.label_csvDelimiter, 0, 2);
             this.tableLayoutPanel3.Controls.Add(this.combo_multiprocess_count, 1, 1);
@@ -172,12 +181,37 @@
             this.tableLayoutPanel3.Controls.Add(this.label1, 0, 0);
             this.tableLayoutPanel3.Location = new System.Drawing.Point(9, 29);
             this.tableLayoutPanel3.Name = "tableLayoutPanel3";
-            this.tableLayoutPanel3.RowCount = 3;
+            this.tableLayoutPanel3.RowCount = 4;
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel3.Size = new System.Drawing.Size(476, 193);
             this.tableLayoutPanel3.TabIndex = 8;
+            // 
+            // combo_outputActions
+            // 
+            this.combo_outputActions.Dock = System.Windows.Forms.DockStyle.Top;
+            this.combo_outputActions.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.combo_outputActions.FormattingEnabled = true;
+            this.combo_outputActions.Items.AddRange(new object[] {
+            "Skip .lip files in output",
+            "Overwrite .lip files in output"});
+            this.combo_outputActions.Location = new System.Drawing.Point(188, 117);
+            this.combo_outputActions.Name = "combo_outputActions";
+            this.combo_outputActions.Size = new System.Drawing.Size(285, 32);
+            this.combo_outputActions.TabIndex = 7;
+            // 
+            // label_outputActions
+            // 
+            this.label_outputActions.AutoSize = true;
+            this.label_outputActions.Dock = System.Windows.Forms.DockStyle.Top;
+            this.label_outputActions.Location = new System.Drawing.Point(3, 114);
+            this.label_outputActions.Name = "label_outputActions";
+            this.label_outputActions.Padding = new System.Windows.Forms.Padding(0, 5, 0, 0);
+            this.label_outputActions.Size = new System.Drawing.Size(179, 29);
+            this.label_outputActions.TabIndex = 6;
+            this.label_outputActions.Text = "Output Actions:";
             // 
             // combo_csvDelimiter
             // 
@@ -203,7 +237,7 @@
             this.label_csvDelimiter.Padding = new System.Windows.Forms.Padding(0, 5, 0, 0);
             this.label_csvDelimiter.Size = new System.Drawing.Size(179, 29);
             this.label_csvDelimiter.TabIndex = 4;
-            this.label_csvDelimiter.Text = "CSV Delimiter";
+            this.label_csvDelimiter.Text = "CSV Delimiter:";
             // 
             // combo_multiprocess_count
             // 
@@ -244,7 +278,7 @@
             "None (Requires 16kHz 16bit mono)",
             "FaceFX Native",
             "Resampled (Standard)",
-            "Smooth Resample (Safest)"});
+            "Biquadratic filtered (Safest)"});
             this.combo_audio_preprocessing.Location = new System.Drawing.Point(188, 3);
             this.combo_audio_preprocessing.Name = "combo_audio_preprocessing";
             this.combo_audio_preprocessing.Size = new System.Drawing.Size(285, 32);
@@ -413,6 +447,8 @@
             // 
             this.Group_TotalProgress.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
+            this.Group_TotalProgress.Controls.Add(this.tableLayoutPanel4);
+            this.Group_TotalProgress.Controls.Add(this.progress_batch);
             this.Group_TotalProgress.Controls.Add(this.tableLayoutPanel1);
             this.Group_TotalProgress.Controls.Add(this.progress_total);
             this.Group_TotalProgress.Location = new System.Drawing.Point(13, 445);
@@ -435,8 +471,9 @@
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 2;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(467, 127);
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(467, 45);
             this.tableLayoutPanel1.TabIndex = 5;
             // 
             // label_progress_value2A
@@ -490,6 +527,48 @@
             this.Group_Settings.TabStop = false;
             this.Group_Settings.Text = "Settings";
             // 
+            // progress_batch
+            // 
+            this.progress_batch.Location = new System.Drawing.Point(16, 122);
+            this.progress_batch.Name = "progress_batch";
+            this.progress_batch.Size = new System.Drawing.Size(467, 36);
+            this.progress_batch.TabIndex = 6;
+            this.progress_batch.Visible = false;
+            // 
+            // tableLayoutPanel4
+            // 
+            this.tableLayoutPanel4.ColumnCount = 2;
+            this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel4.Controls.Add(this.label_batch_value, 1, 0);
+            this.tableLayoutPanel4.Controls.Add(this.label_batch_status, 0, 0);
+            this.tableLayoutPanel4.Location = new System.Drawing.Point(16, 161);
+            this.tableLayoutPanel4.Name = "tableLayoutPanel4";
+            this.tableLayoutPanel4.RowCount = 1;
+            this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(467, 37);
+            this.tableLayoutPanel4.TabIndex = 8;
+            // 
+            // label_batch_value
+            // 
+            this.label_batch_value.AutoSize = true;
+            this.label_batch_value.Location = new System.Drawing.Point(133, 0);
+            this.label_batch_value.Name = "label_batch_value";
+            this.label_batch_value.Size = new System.Drawing.Size(47, 24);
+            this.label_batch_value.TabIndex = 4;
+            this.label_batch_value.Text = "5/85";
+            this.label_batch_value.Visible = false;
+            // 
+            // label_batch_status
+            // 
+            this.label_batch_status.AutoSize = true;
+            this.label_batch_status.Location = new System.Drawing.Point(3, 0);
+            this.label_batch_status.Name = "label_batch_status";
+            this.label_batch_status.Size = new System.Drawing.Size(124, 24);
+            this.label_batch_status.TabIndex = 5;
+            this.label_batch_status.Text = "Current Batch:";
+            this.label_batch_status.Visible = false;
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 24F);
@@ -505,6 +584,7 @@
             this.Name = "MainWindow";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Project Lykos - Lip Generation Tool";
+            this.Load += new System.EventHandler(this.MainWindow_Load);
             this.LayoutPanel_LowerButtons.ResumeLayout(false);
             this.tableLayoutPanel3.ResumeLayout(false);
             this.tableLayoutPanel3.PerformLayout();
@@ -516,6 +596,8 @@
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.Group_Settings.ResumeLayout(false);
+            this.tableLayoutPanel4.ResumeLayout(false);
+            this.tableLayoutPanel4.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -555,5 +637,11 @@
         private Label label_progress_status1A;
         private Label label_progress_value2A;
         private Label label_progress_status2A;
+        private ComboBox combo_outputActions;
+        private Label label_outputActions;
+        private TableLayoutPanel tableLayoutPanel4;
+        private Label label_batch_value;
+        private Label label_batch_status;
+        private ProgressBar progress_batch;
     }
 }
