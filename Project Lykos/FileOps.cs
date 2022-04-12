@@ -76,8 +76,7 @@ namespace Project_Lykos
             stopwatch.Start();
             DataTable dt = new();
             dt.Columns.Add(@"path", typeof(string));
-            dt.Columns.Add(@"sub_folder", typeof(string));
-            dt.Columns.Add(@"file_name", typeof(string));
+            dt.Columns.Add(@"relative_path", typeof(string));
             dt.Columns.Add(@"text", typeof(string));
             
             var configuration = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -101,11 +100,13 @@ namespace Project_Lykos
             {
                 lastLine++;
                 var row = dt.NewRow();
-                var path = csv.GetField<string>(pathHeader);
-                row[0] = path.Replace('/', '\\');
-                row[1] = Path.GetFileName(Path.GetDirectoryName(path));
-                row[2] = Path.GetFileName(path);
-                row[3] = csv.GetField<string>(textHeader);
+                var path = csv.GetField<string>(pathHeader).Replace('/', '\\');
+                var folder = Path.GetFileName(Path.GetDirectoryName(path)); // Relative Path
+                if (folder == null) throw new Exception($"Folder is null for path: {path}");
+                var file = Path.GetFileName(path);
+                row[0] = path; // Full Path
+                row[1] = Path.Combine(folder, file); // Relative Path
+                row[2] = csv.GetField<string>(textHeader); // Text
                 dt.Rows.Add(row);
                 // Report progress if time elapsed more than 95ms
                 if (DateTime.Now.Subtract(lastReportTime).TotalMilliseconds < 19) continue;
