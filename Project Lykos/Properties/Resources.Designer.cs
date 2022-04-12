@@ -63,9 +63,9 @@ namespace Project_Lykos.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
-        internal static byte[] FaceFXWrapper {
+        internal static byte[] FXExtended {
             get {
-                object obj = ResourceManager.GetObject("FaceFXWrapper", resourceCulture);
+                object obj = ResourceManager.GetObject("FXExtended", resourceCulture);
                 return ((byte[])(obj));
             }
         }
