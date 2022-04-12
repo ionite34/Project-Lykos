@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -36,7 +37,7 @@ namespace Project_Lykos
         {
             Destroy();
             Create();
-            DeployFaceFX();
+            DeployExecutable();
             DeployFonixData();
         }
         
@@ -57,20 +58,39 @@ namespace Project_Lykos
         }
         
          // Deploys the FaceFXWrapper.exe to the temp directory
-        private static void DeployFaceFX(string relativeTempPath = "Wrapper")
+        public static void DeployExecutable(string customName = "FXExtended.exe")
         {
             Create();
-            File.WriteAllBytes(WrapPath, Properties.Resources.FaceFXWrapperExtended);
+            var writePath = Path.Join(WrapDir, customName);
+            File.WriteAllBytes(writePath, Properties.Resources.FXExtended);
         }
 
-        private static void DeployFonixData(string relativeTempPath = "Wrapper")
+        public static void DeployFonixData(string customName = "FonixData.cdf")
         {
             if (!(DependencyCheck.CheckFonixData())) throw new IOException(@"Fonix data not found");
             Create();
             var appDirectory = Directory.GetCurrentDirectory();
-            var path = Path.Combine(appDirectory, "FonixData.cdf");
-            // Move the file from path to the temp directory
-            File.Copy(path, Path.Join(FullTempDir, relativeTempPath, @"FonixData.cdf"));
+            var sourcePath = Path.Combine(appDirectory, "FonixData.cdf");
+            // Rename the file to the custom name
+            File.Copy(sourcePath, Path.Join(WrapDir, customName));
+        }
+
+        public static Task KillProcesses()
+        {
+            return Task.Run(() =>
+            {   
+                // If any FaceFXWrapper are running, shut them down
+                foreach (var process in Process.GetProcessesByName("FaceFXWrapperExtended"))
+                {
+                    process.Kill();
+                }
+                // Wait until all FaceFXWrapper are closed
+                while (Process.GetProcessesByName("FaceFXWrapperExtended").Length > 0)
+                {
+                    Task.Delay(500).Wait();
+                }
+                Cache.Destroy();
+            });
         }
 
         public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize) 
