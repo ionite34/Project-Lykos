@@ -21,18 +21,18 @@ namespace Project_Lykos
         private DataTable? CsvData { get; set; }
 
         // Process Controller
-        private readonly ProcessControl _pc;
+        public ProcessControl CtProcessControl { get; } = new();
 
         // Constructor
         public LykosController()
         {
-            _pc = new ProcessControl();
+            //_pc = new ProcessControl();
         }
         
         // Checks if the CSV is loaded by checking the length of the DataTable
         public bool IsCsvLoaded()
         {
-            return CsvData.Rows.Count > 0;
+            return CsvData != null && CsvData.Rows.Count > 0;
         }
 
         public bool ReadyIndex()
@@ -46,7 +46,7 @@ namespace Project_Lykos
         }
 
         // Set the Filepath_Source, if valid path, else return false
-        public Task SetFilepath_Source(string filepath)
+        public void SetFilepath_Source(string filepath)
         {
             if (!System.IO.Directory.Exists(filepath)) throw new Exception("File not found.");
             // Check Directory layers
@@ -58,7 +58,6 @@ namespace Project_Lykos
             DynPathSource.SetPath(filepath);
             // Calls a task to index the files
             _indexControl.BackgroundIndexFiles(filepath);
-            return Task.CompletedTask;
         }
         
         // Set the Filepath_Output, if valid path, else return false
@@ -103,7 +102,7 @@ namespace Project_Lykos
         public List<string> IndexSource(IProgress<(int current, int total)> progress)
         {
             if (!DynPathSource.Exists()) throw new Exception("Source Path not loaded.");
-            if (!DynPathOutput.Exists()) throw new Exception("Output Path not loaded.");
+            // if (!DynPathOutput.Exists()) throw new Exception("Output Path not loaded.");
             if (!DynPathCSV.Exists() || (CsvData.Rows.Count <= 0)) throw new Exception("CSV Path not loaded.");
 
             // Build a dictionary with the CSV DataTable
@@ -120,12 +119,10 @@ namespace Project_Lykos
             
             foreach (DataRow row in CsvData.Rows)
             {
-                var fullPathOriginal = row["path"].ToString();
-                var subFolder = Path.GetFileName(Path.GetDirectoryName(fullPathOriginal));
-                var file = Path.GetFileName(fullPathOriginal);
-                var relativePath = $"{subFolder}\\{file}";
+                var relativePath = row["relative_path"].ToString();
+                var file = Path.GetFileName(relativePath); 
                 var text = row["text"].ToString();
-                if (text == null) throw new Exception("Text is null.");
+                if (text == null || file == null) throw new Exception("CSV Path column invalid on row: " + row.Table.Rows.IndexOf(row));
 
                 // Detect if the path is already in the dictionary
                 if (csvDict.ContainsKey(relativePath))
@@ -181,9 +178,9 @@ namespace Project_Lykos
             List<string> filesWithoutTextMatch = new();
 
             var currentRow = 0;
-            var lastPercent = -1;
             var maxRow = _indexControl.IndexData.Rows.Count;
-            
+            var lastReportTime = DateTime.UtcNow;
+
             // Loop through the index data
             // Use the dictionary to find the text
             // Create a ProcessTask object and add to the ProcessControl's CurrentTasksBatch list
@@ -205,35 +202,24 @@ namespace Project_Lykos
                 }
                 
                 // Replace the extension of relativePath from .wav to .lip
-                var lipOutput = Path.ChangeExtension(fullPath, ".lip");
-                    
-                // Build the ProcessTask object
-                var task = new ProcessTask
-                {
-                    WavSourcePath = fullPath,
-                    LipOutputPath = Path.Combine(DynPathOutput.Path, lipOutput),
-                };
-                
-                // Add the ProcessTask to the ProcessControl's CurrentTasksBatch list
-                _pc.CurrentTaskBatch.Enqueue(task);
-
+                var lipRelativePath = Path.ChangeExtension(relativePath, ".lip");
+                var lipOutputPath = Path.Combine(DynPathOutput.Path, lipRelativePath);
+                // Add new task to PC
+                CtProcessControl.Enqueue(new ProcessTask(fullPath, lipOutputPath, text));
                 // Progress Report
                 currentRow++;
-                var percent = currentRow / maxRow * 100;
-                if (percent != lastPercent)
-                {
-                    if (currentRow > maxRow) throw new Exception("IndexData has more rows than expected.");
-                    progress.Report((currentRow, maxRow));
-                    lastPercent = percent;
-                }
+                // Report progress if time elapsed more than 95ms
+                if (DateTime.Now.Subtract(lastReportTime).TotalMilliseconds < 19) continue;
+                progress.Report((currentRow, maxRow));
+                lastReportTime = DateTime.UtcNow;
             }
             // Get number of files, and number of files with text match, return a list of strings
-            var numFiles = _pc.CurrentTaskBatch.Count;
-            var numFilesWithoutTextMatch = filesWithoutTextMatch.Count;
+            var reportNumTasks = CtProcessControl.Count;
+            var reportNumFilesWithoutTextMatch = filesWithoutTextMatch.Count;
             List<string> result = new()
                 {
-                    $"{numFiles} files indexed.",
-                    $"{numFilesWithoutTextMatch} files without text match."
+                    $"{reportNumTasks} generation tasks created.",
+                    $"{reportNumFilesWithoutTextMatch} files without text match."
                 };
             return result;
         }
