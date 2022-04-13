@@ -36,6 +36,7 @@
             this.label2 = new System.Windows.Forms.Label();
             this.linkLabel1 = new System.Windows.Forms.LinkLabel();
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
+            this.checkBox_override = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.SuspendLayout();
@@ -49,7 +50,7 @@
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel1.Controls.Add(this.button_continue, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.button_exit, 1, 0);
-            this.tableLayoutPanel1.Location = new System.Drawing.Point(127, 232);
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(125, 254);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 1;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
@@ -85,7 +86,7 @@
             this.label1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.label1.Location = new System.Drawing.Point(3, 0);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(461, 24);
+            this.label1.Size = new System.Drawing.Size(459, 24);
             this.label1.TabIndex = 2;
             this.label1.Text = "Multiple text records were found for the same audio file:";
             // 
@@ -97,7 +98,7 @@
             this.combo_textChoices.Location = new System.Drawing.Point(3, 117);
             this.combo_textChoices.Margin = new System.Windows.Forms.Padding(3, 8, 3, 3);
             this.combo_textChoices.Name = "combo_textChoices";
-            this.combo_textChoices.Size = new System.Drawing.Size(461, 32);
+            this.combo_textChoices.Size = new System.Drawing.Size(459, 32);
             this.combo_textChoices.TabIndex = 3;
             this.combo_textChoices.SelectedValueChanged += new System.EventHandler(this.Combo_textChoices_SelectedValueChanged);
             // 
@@ -107,7 +108,7 @@
             this.label2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.label2.Location = new System.Drawing.Point(3, 85);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(461, 24);
+            this.label2.Size = new System.Drawing.Size(459, 24);
             this.label2.TabIndex = 4;
             this.label2.Text = "To continue, choose a corresponding text entry below:";
             // 
@@ -117,7 +118,7 @@
             this.linkLabel1.Location = new System.Drawing.Point(3, 28);
             this.linkLabel1.Margin = new System.Windows.Forms.Padding(3, 4, 3, 0);
             this.linkLabel1.Name = "linkLabel1";
-            this.linkLabel1.Size = new System.Drawing.Size(461, 57);
+            this.linkLabel1.Size = new System.Drawing.Size(459, 57);
             this.linkLabel1.TabIndex = 5;
             this.linkLabel1.TabStop = true;
             this.linkLabel1.Text = "AudioFile";
@@ -125,28 +126,45 @@
             // 
             // tableLayoutPanel2
             // 
+            this.tableLayoutPanel2.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.tableLayoutPanel2.ColumnCount = 1;
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel2.Controls.Add(this.label1, 0, 0);
             this.tableLayoutPanel2.Controls.Add(this.combo_textChoices, 0, 3);
             this.tableLayoutPanel2.Controls.Add(this.label2, 0, 2);
             this.tableLayoutPanel2.Controls.Add(this.linkLabel1, 0, 1);
+            this.tableLayoutPanel2.Controls.Add(this.checkBox_override, 0, 4);
             this.tableLayoutPanel2.Location = new System.Drawing.Point(24, 25);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 4;
+            this.tableLayoutPanel2.RowCount = 5;
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(467, 188);
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel2.Size = new System.Drawing.Size(465, 216);
             this.tableLayoutPanel2.TabIndex = 6;
+            // 
+            // checkBox_override
+            // 
+            this.checkBox_override.AutoSize = true;
+            this.checkBox_override.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.checkBox_override.Location = new System.Drawing.Point(3, 156);
+            this.checkBox_override.Name = "checkBox_override";
+            this.checkBox_override.Size = new System.Drawing.Size(459, 57);
+            this.checkBox_override.TabIndex = 6;
+            this.checkBox_override.Text = "Remember my choice for this file name";
+            this.checkBox_override.UseVisualStyleBackColor = true;
+            this.checkBox_override.CheckedChanged += new System.EventHandler(this.checkBox_override_CheckedChanged);
             // 
             // IndexCollisionDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 24F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
-            this.ClientSize = new System.Drawing.Size(513, 305);
+            this.ClientSize = new System.Drawing.Size(511, 327);
             this.Controls.Add(this.tableLayoutPanel2);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
@@ -172,5 +190,6 @@
         private Label label2;
         private LinkLabel linkLabel1;
         private TableLayoutPanel tableLayoutPanel2;
+        private CheckBox checkBox_override;
     }
 }

@@ -10,16 +10,24 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
     <StartupObject>Project_Lykos.Program</StartupObject>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>ionite.snk</AssemblyOriginatorKeyFile>
     <ApplicationIcon>app_icon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <CheckForOverflowUnderflow>True</CheckForOverflowUnderflow>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\FaceFXWrapper.exe" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="app_icon.ico" />
@@ -29,7 +37,9 @@
     <PackageReference Include="CliWrap" Version="3.4.2" />
     <PackageReference Include="CsvHelper" Version="27.2.1" />
     <PackageReference Include="CsvHelper.FastDynamic" Version="1.3.1" />
+    <PackageReference Include="Gt.SubProcess" Version="1.0.5" />
     <PackageReference Include="JetBrains.Annotations" Version="2021.3.0" />
+    <PackageReference Include="NAudio" Version="2.0.1" />
     <PackageReference Include="UTF.Unknown" Version="2.5.0" />
   </ItemGroup>
 

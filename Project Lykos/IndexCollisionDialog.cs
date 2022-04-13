@@ -16,8 +16,9 @@ namespace Project_Lykos
     {
         private readonly string pathAudio;
         public int ReturnedSelectedIndex { get; private set; }
+        public bool ReturnOverrideState { get; private set; }
 
-        public IndexCollisionDialog(string pathAudio, DataRow[] dataRows)
+        public IndexCollisionDialog(string pathAudio, List<string> selections)
         {
             InitializeComponent();
             // Configure Dialog buttons
@@ -26,9 +27,9 @@ namespace Project_Lykos
             button_continue.DialogResult = DialogResult.Continue;
             button_continue.Enabled = false;
             // Set combo to display options
-            var options = dataRows.Select(r => r.Field<string>("text")).ToList();
-            combo_textChoices.DataSource = options;
+            combo_textChoices.DataSource = selections;
             this.pathAudio = pathAudio;
+            linkLabel1.Text = pathAudio;
         }
 
         private void LinkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
@@ -55,6 +56,11 @@ namespace Project_Lykos
         {
             // Play error sound
             SystemSounds.Exclamation.Play();
+        }
+
+        private void checkBox_override_CheckedChanged(object sender, EventArgs e)
+        {
+            ReturnOverrideState = checkBox_override.Checked;
         }
     }
 }

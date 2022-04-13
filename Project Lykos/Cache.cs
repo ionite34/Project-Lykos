@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -13,42 +15,90 @@ namespace Project_Lykos
         public static readonly string TempDir = Path.GetTempPath();
         public static string FullTempDir => Path.Join(TempDir, "Lykos_Temp");
         public static string WrapDir => Path.Join(FullTempDir, "Wrapper");
-        public static string WrapPath => Path.Join(WrapDir, "FaceFXWrapper.exe");
+        public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FonixData.cdf");
+        public static string WrapPath => Path.Join(WrapDir, "FaceFXWrapperExtended.exe");
         public static string AudioDir => Path.Join(FullTempDir, "AudioSource");
-        public static string AudioResamplingDir => Path.Join(FullTempDir, "ResampleCache");
+        public static string LogDir => Path.Join(Directory.GetCurrentDirectory(), "Logs");
 
-        // Creates the temp directory
-        public static void Create()
+        // Storage of args
+        public static string ArgType { get; } = "Skyrim";
+        public static string ArgLang { get; } = "USEnglish";
+        
+        // Storage of processing time
+        public static List<double> ProcessingTimes { set; get; } = new List<double>();
+        // Returns the average of the processing times
+        public static double AverageProcessingTime => ProcessingTimes.Average();
+        
+        // Running
+        public static int ProcessesRunning { set; get; } = 0;
+        
+        // Setups the temp directory for use
+        public static void Setup()
         {
-            if (Directory.Exists(FullTempDir)) return;
-            Directory.CreateDirectory(FullTempDir);
-            Directory.CreateDirectory(Path.Join(FullTempDir, "Wrapper"));
-            Directory.CreateDirectory(Path.Join(FullTempDir, "Source_Audio"));
+            Destroy();
+            Create();
+            DeployExecutable();
+            DeployFonixData();
         }
-
+        
         // Deletes the temp directory
         public static void Destroy()
         {
             if (!Directory.Exists(FullTempDir)) return;
             Directory.Delete(FullTempDir, true);
         }
-
-        public static void DeployFaceFX(string relativeTempPath = "Wrapper")
+        
+        // Creates the temp directory
+        private static void Create()
+        {
+            if (Directory.Exists(FullTempDir)) return;
+            Directory.CreateDirectory(FullTempDir);
+            Directory.CreateDirectory(WrapDir);
+            Directory.CreateDirectory(AudioDir);
+        }
+        
+         // Deploys the FaceFXWrapper.exe to the temp directory
+        public static void DeployExecutable(string customName = "FXExtended.exe")
         {
             Create();
-            var wrapDir = Path.Join(FullTempDir, relativeTempPath);
-            File.WriteAllBytes(wrapDir, Properties.Resources.FaceFXWrapper);
+            var writePath = Path.Join(WrapDir, customName);
+            File.WriteAllBytes(writePath, Properties.Resources.FXExtended);
         }
 
-        public static void DeployFonixData(string relativeTempPath = "Wrapper")
+        public static void DeployFonixData(string customName = "FonixData.cdf")
         {
-            if (!(DependencyCheck.CheckFonixData())) throw new IOException("Fonix data not found");
+            if (!(DependencyCheck.CheckFonixData())) throw new IOException(@"Fonix data not found");
             Create();
             var appDirectory = Directory.GetCurrentDirectory();
-            var path = Path.Combine(appDirectory, "FonixData.cdf");
-            // Move the file from path to the temp directory
-            File.Copy(path, Path.Join(FullTempDir, relativeTempPath, "FonixData.cdf"));
+            var sourcePath = Path.Combine(appDirectory, "FonixData.cdf");
+            // Rename the file to the custom name
+            File.Copy(sourcePath, Path.Join(WrapDir, customName));
         }
 
+        public static Task KillProcesses()
+        {
+            return Task.Run(() =>
+            {   
+                // If any FaceFXWrapper are running, shut them down
+                foreach (var process in Process.GetProcessesByName("FaceFXWrapperExtended"))
+                {
+                    process.Kill();
+                }
+                // Wait until all FaceFXWrapper are closed
+                while (Process.GetProcessesByName("FaceFXWrapperExtended").Length > 0)
+                {
+                    Task.Delay(500).Wait();
+                }
+                Cache.Destroy();
+            });
+        }
+
+        public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize) 
+        {
+            for (int i = 0; i < chunkSize && queue.Count > 0; i++)
+            {
+                yield return queue.Dequeue();
+            }
+        }
     }
 }
