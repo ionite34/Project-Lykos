@@ -80,7 +80,7 @@ jobs:
       run: dotnet test
       
     - name: Build
-      run: msbuild Project Lykos.sln /p:Configuration=Release /p:PublishProfile=FolderProfile /p:PublishSinlgeFile=true /p:SelfContained=false /p:RunTimeIdentifier=win-x64 /p:PublishReadyToRun=true
+      run: msbuild $env:Solution_Name /p:Configuration=Release /p:PublishProfile=FolderProfile /p:PublishSinlgeFile=true /p:SelfContained=false /p:RunTimeIdentifier=win-x64 /p:PublishReadyToRun=true
  
     - name: Upload Artifact
       uses: actions/upload-artifact@v1.0.0
