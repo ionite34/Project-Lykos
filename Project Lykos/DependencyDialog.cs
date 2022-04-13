@@ -20,7 +20,7 @@ namespace Project_Lykos
 
         private void LinkLabel_download_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
-            string target = "https://www.nexusmods.com/skyrimspecialedition/mods/40971?tab=files";
+            const string target = @"https://www.nexusmods.com/skyrimspecialedition/mods/40971?tab=files";
 
             ProcessStartInfo startInfo = new()
             {
@@ -43,7 +43,7 @@ namespace Project_Lykos
             }
             catch (Exception e1)
             {
-                MessageBox.Show("Failed to launch link." + e1.Message);
+                MessageBox.Show(@"Failed to launch link." + e1.Message);
             }
         }
         
@@ -57,15 +57,19 @@ namespace Project_Lykos
 
         private void Button_retry_Click(object sender, EventArgs e)
         {
-            // Recheck dependency
-            if (DependencyCheck.CheckFonixData()) {
-                this.DialogResult = DialogResult.OK;
-                this.Close();
+            if (!DependencyCheck.FonixDataExists()) {
+                MessageBox.Show(@"Unable to locate FonixData.cdf, please ensure it is in the same folder as this application.",
+                    @"FonixData.cdf Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
-            else
+            if (!DependencyCheck.FonixDataChecksumOK())
             {
-                MessageBox.Show("Unable to locate FonixData.cdf, please ensure it is in the same folder as this application.", "FonixData.cdf Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(@"A FonixData.cdf file was found but its data is not valid. Please ensure you have downloaded the correct file.",
+                    @"FonixData.cdf Integrity Check Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
             }
+            this.DialogResult = DialogResult.OK;
+            this.Close();
         }
     }
 }
