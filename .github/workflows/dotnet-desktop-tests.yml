@@ -1,24 +1,27 @@
-name: .NET Desktop Tests
+name: Build and Test
 
 on:
   push:
-    branches: [ main ]
+    # branches: [ main ]
   pull_request:
     branches: [ main ]
+    paths:
+    - '**.cs'
+    - '**.csproj'
 
 jobs:
-
-  build:
-
+  build-and-test:
+    name: build-and-test-${{matrix.os}}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [windows-latest]
         configuration: [Debug]
 
-    runs-on: windows-latest  # For a list of available runner types, refer to
-                             # https://help.github.com/en/actions/reference/workflow-syntax-for-github-actions#jobsjob_idruns-on
     env:
       Solution_Name: Project Lykos.sln
       Test_Project_Path: Project Lykos Test/Project Lykos Test.csproj
+      DOTNET_VERSION: '6.0.x'
 
     steps:
     - name: Checkout
@@ -26,12 +29,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    # Install the .NET Core workload
-    - name: Install .NET Core
+    - name: Setup .NET Core
       uses: actions/setup-dotnet@v2
       with:
-        dotnet-version: 6.0.x
-
-    # Execute all unit tests in the solution
-    - name: Execute unit tests
-      run: dotnet test
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+        
+    - name: Install dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+      
+    - name: Test
+      run: dotnet test --no-restore --verbosity normal
+      
