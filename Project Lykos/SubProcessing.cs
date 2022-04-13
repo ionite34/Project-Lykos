@@ -100,7 +100,7 @@ public class SubProcessing
             subProcess = new SubProcess(exePath, "fxe", ArgType, ArgLang, 
                 dataPath, UseNativeResampler.ToString().ToLower())
             {
-                Out = SubProcess.Capture,
+                Out = SubProcess.Pipe,
                 In = SubProcess.Pipe
             };
             subProcess.Start();
