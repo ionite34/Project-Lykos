@@ -10,6 +10,8 @@ namespace Project_Lykos
 {
     public static class DependencyCheck
     {
+        private const string DataName = "FonixData.cdf";
+        private const string DataChecksum = "4A9D909F712AA82AA28116EE30F42431";
         private static string GetMD5Checksum(string filename)
 		{
             using var md5 = MD5.Create();
@@ -18,24 +20,24 @@ namespace Project_Lykos
             return BitConverter.ToString(hash).Replace("-", "");
         }
 
-        private static bool ChecksumMatchesFonixData(string filename)
+        public static bool FonixDataChecksumOK()
         {
-            var hashStr = GetMD5Checksum(filename);
-            var expected = "4A9D909F712AA82AA28116EE30F42431";
-            return hashStr == expected;
+            var appDirectory = Directory.GetCurrentDirectory();
+            var path = Path.Combine(appDirectory, DataName);
+            var hashStr = GetMD5Checksum(path);
+            return hashStr == DataChecksum;
+        }
+
+        public static bool FonixDataExists()
+        {
+            var appDirectory = Directory.GetCurrentDirectory();
+            var path = Path.Combine(appDirectory, DataName);
+            return File.Exists(path);
         }
 
         public static bool CheckFonixData()
         {
-            string appDirectory = Directory.GetCurrentDirectory();
-            var path = Path.Combine(appDirectory, "FonixData.cdf");
-            // Check file exists first
-            if (!File.Exists(path))
-            {
-                return false;
-            }
-            // Check Checksum
-            return ChecksumMatchesFonixData(path);
+            return FonixDataExists() && FonixDataChecksumOK();
         }
     }
 }
