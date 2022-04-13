@@ -162,7 +162,7 @@ namespace Project_Lykos
                 label_progress_status1A.Visible = true;
                 Progress1Running = true;
                 ct.CtProcessControl.ProgressChanged += Batch_ProgressChanged;
-                var procNum = Int32.Parse(combo_multiprocess_count.SelectedText);
+                var procNum = combo_multiprocess_count.SelectedIndex + 1;
                 await Task.Run(() => ct.CtProcessControl.Start(procNum, 200, false, cts1));
             }
             catch (TaskCanceledException cancelException)
