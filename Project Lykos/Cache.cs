@@ -77,20 +77,30 @@ namespace Project_Lykos
 
         public static Task KillProcesses()
         {
-            return Task.Run(() =>
-            {   
+            var task = Task.Run(() =>
+            {
                 // If any FaceFXWrapper are running, shut them down
-                foreach (var process in Process.GetProcessesByName("FaceFXWrapperExtended"))
+                foreach (var process in Process.GetProcessesByName("FXExtended"))
                 {
                     process.Kill();
                 }
                 // Wait until all FaceFXWrapper are closed
-                while (Process.GetProcessesByName("FaceFXWrapperExtended").Length > 0)
+                while (Process.GetProcessesByName("FXExtended").Length > 0)
                 {
-                    Task.Delay(500).Wait();
+                    Task.Delay(50).Wait();
                 }
-                Cache.Destroy();
+                try
+                {
+                    Destroy();
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
+
+                return true;
             });
+            return task;
         }
 
         public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize) 
