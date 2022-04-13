@@ -1,7 +1,4 @@
 using System.Text;
-using System.Windows.Forms.VisualStyles;
-using CliWrap;
-using CliWrap.EventStream;
 using Gt.SubProcess;
 using static Project_Lykos.Cache;
 
@@ -14,21 +11,18 @@ public class SubProcessing
     public bool UseNativeResampler { get; set; } = false;
     public TimeSpan StartTimeout { get; set; } = TimeSpan.FromSeconds(15);
     public TimeSpan ProcessTimeout { get; set; } = TimeSpan.FromSeconds(60);
-    
-    // Info
-    public ProcessTask? CurrentTask { private set; get; }
-    
+
     // Private vars
     private readonly ProcessControl processControl;
-    private StringBuilder stdOutBuffer = new StringBuilder();
+    private readonly StringBuilder stdOutBuffer = new StringBuilder();
     private readonly MemoryStream stream = new();
     private readonly StreamWriter stdInWriter;
-    private CancellationTokenSource cancelControl = new();
-    private string uuid = Guid.NewGuid().ToString();
-    private string exeName;
-    private string exePath;
-    private string dataName;
-    private string dataPath;
+    private readonly CancellationTokenSource cancelControl = new();
+    private readonly string uuid = Guid.NewGuid().ToString();
+    private readonly string exeName;
+    private readonly string exePath;
+    private readonly string dataName;
+    private readonly string dataPath;
     
     // Private objects
     private SubProcess? subProcess;
@@ -48,30 +42,6 @@ public class SubProcessing
     public bool IsRunning()
     {
         return subProcess is {IsAlive: true};
-    }
-    
-    
-    /// <summary>
-    /// Writes to the process's stdin
-    /// </summary>
-    /// <param name="text"></param>
-    private void WriteToStdIn(string text)
-    {
-        stdInWriter.Write(text);
-        stdInWriter.Flush();
-    }
-
-    /// <summary>
-    /// Dequeues a task and builds the command string
-    /// </summary>
-    /// <returns>
-    /// Command string with quotes
-    /// </returns>
-    private string GetNewCommand()
-    {
-        // Dequeue a processTask from the queue (ProcessControl)
-        var processTask = processControl.Dequeue();
-        return processTask.GetCommand();
     }
 
     /// <summary>
@@ -103,7 +73,7 @@ public class SubProcessing
     /// </returns>
     private static int ParseStartup(string outputLine)
     {
-        if (outputLine.StartsWith("[FXE] > RFI"))
+        if (outputLine.Contains("[FXE] > RFI"))
         {
             return 1;
         }
@@ -140,33 +110,41 @@ public class SubProcessing
         {
             throw new Exception("Error starting subprocess", e);
         }
-        // Read from the out
-        var reader = subProcess.OutputReader;
+        // Clear stdout buffer
+        stdOutBuffer.Clear();
         // Create our own time based cancellation token
         var timeoutToken = new CancellationTokenSource(StartTimeout);
+        // Read from the out
+        var reader = subProcess.OutputReader;
+        var readCount = 0;
+        var sw = new System.Diagnostics.Stopwatch();
+        sw.Start();
         // Continuously read from the stream for updates
-        while (subProcess.IsAlive && !cancelControl.IsCancellationRequested && !timeoutToken.IsCancellationRequested)
+        while (!cancelControl.IsCancellationRequested && !timeoutToken.IsCancellationRequested)
         {
+            // Skip if less than 25ms since last read and not first run
+            if ((readCount != 0) && (sw.ElapsedMilliseconds < 25)) continue;
+            readCount++;
             // Read from the stream
-            var outputLine = reader.ReadLine();
-            // If there is a line, parse it
-            if (outputLine == null) continue;
-            if (ParseStartup(outputLine) == 1)
+            var parseResult = 0;
+            // This auto continues if no more lines
+            while (reader.ReadLine() is { } outputLine)
             {
-                return true;
+                stdOutBuffer.AppendLine(outputLine);
+                parseResult = ParseStartup(outputLine);
             }
-            if (ParseStartup(outputLine) == 2)
+            switch (parseResult)
             {
-                // If error, stop
-                subProcess.Kill();
-                throw new Exception("FaceFX subprocess reported error on startup: " + outputLine);
+                case 1:
+                    return true;
+                case 2:
+                    // If error continue to timeout tasks
+                    break;
             }
-            // Wait 5ms
-            Thread.Sleep(5);
         }
         // For timeout
         subProcess.Kill();
-        WriteLog(stdOutBuffer).ConfigureAwait(false);
+        WriteLog(stdOutBuffer);
         return false;
     }
 
@@ -181,78 +159,52 @@ public class SubProcessing
         stdOutBuffer.Clear(); // Clear the buffer
         subProcess.WriteLine(command); // Write the command to the input stream
         
-        // Create our own time based cancellation token
+        // Time based cancellation token
         var timeoutToken = new CancellationTokenSource(ProcessTimeout);
-        // Check output
+        // Reader for the output stream
         var reader = subProcess.OutputReader;
+        // Tracking variables
         var readCount = 0;
         var sw = new System.Diagnostics.Stopwatch();
         sw.Start();
+        // Start read while not cancelled
         while (!cancelControl.IsCancellationRequested && !timeoutToken.IsCancellationRequested)
         {
-            // Skip if less than 25ms since last read
+            // Skip if less than 25ms since last read and not first run
             if ((readCount != 0) && (sw.ElapsedMilliseconds < 25)) continue;
             readCount++;
-            var parseResult = 0;
             // This auto continues if no more lines
+            var parseResult = 0;
             while (reader.ReadLine() is { } outputLine)
             {
+                stdOutBuffer.AppendLine(outputLine);
                 parseResult = ParseOutput(outputLine);
             }
-            if (parseResult == 1) return true;
-            if (parseResult == 2) return false;
+            switch (parseResult)
+            {
+                case 1:
+                    return true;
+                case 2:
+                    WriteLog(stdOutBuffer);
+                    return false;
+            }
         }
         sw.Stop();
+        WriteLog(stdOutBuffer);
         subProcess.Kill();
-        // WriteLog(stdOutBuffer).ConfigureAwait(false);
         return false;
     }
 
-    private void ErrorExit(string message)
-    {
-        // Kill the subprocess
-        subProcess?.Kill();
-        Console.WriteLine(message);
-        Environment.Exit(1);
-    }
-    
     /// <summary>
     /// Writes a string builder to a log file
     /// </summary>
     /// <param name="stringBuilder"></param>
-    private static async Task WriteLog(StringBuilder stringBuilder)
+    private static void WriteLog(StringBuilder stringBuilder)
     {
         var uuid = Guid.NewGuid().ToString();
         var fileName = Path.Combine(LogDir, $"{uuid}_FaceFX_Error.log");
-        await using var writer = File.CreateText(fileName);
-        await File.WriteAllTextAsync(fileName, stringBuilder.ToString());
-        await writer.FlushAsync();
-    }
-    
-    /// <summary>
-    /// (Deprecated) Starts the subprocess and listens to stdIn
-    /// </summary>
-    private async void StartSubProcessLegacy(CancellationTokenSource cts)
-    {
-        var cmd = (PipeSource.FromStream(stream) | Cli.Wrap(WrapPath)).WithArguments("start");
-        await foreach (var cmdEvent in cmd.ListenAsync().WithCancellation(cts.Token))
-        {
-            switch (cmdEvent)
-            {
-                case StartedCommandEvent started:
-                    stdOutBuffer.AppendLine($"Process started; ID: {started.ProcessId}");
-                    break;
-                case StandardOutputCommandEvent stdOut:
-                    stdOutBuffer.AppendLine($"{stdOut.Text}");
-                    break;
-                case StandardErrorCommandEvent stdErr:
-                    // This is not used by the subprocess
-                    break;
-                case ExitedCommandEvent exited:
-                    stdOutBuffer.AppendLine($"Process exited; Code: {exited.ExitCode}");
-                    // Send to ProcessExited
-                    break;
-            }
-        }
+        using var writer = File.CreateText(fileName);
+        File.WriteAllTextAsync(fileName, stringBuilder.ToString());
+        writer.FlushAsync();
     }
 }
