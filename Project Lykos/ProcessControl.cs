@@ -41,13 +41,7 @@ namespace Project_Lykos
             Standard = 2,
             Filtered = 3
         }
-        
-        // Constructor
-        public ProcessControl()
-        {
-            
-        }
-        
+
         private void OnProgressChanged(int progressCount)     // Progress Changed Event
         {
             ProgressChanged?.Invoke(progressCount, CurrentBatch);
