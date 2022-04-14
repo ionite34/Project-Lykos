@@ -16,7 +16,7 @@ namespace Project_Lykos
         public static string FullTempDir => Path.Join(TempDir, "Lykos_Temp");
         public static string WrapDir => Path.Join(FullTempDir, "Wrapper");
         public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FonixData.cdf");
-        public static string WrapPath => Path.Join(WrapDir, "FaceFXWrapperExtended.exe");
+        public static string WrapPath => Path.Join(WrapDir, "FXExtended.exe");
         public static string AudioDir => Path.Join(FullTempDir, "AudioSource");
         public static string LogDir => Path.Join(Directory.GetCurrentDirectory(), "Logs");
 
@@ -65,7 +65,7 @@ namespace Project_Lykos
             File.WriteAllBytes(writePath, Properties.Resources.FXExtended);
         }
 
-        public static void DeployFonixData(string customName = "FonixData.cdf")
+        public static void DeployFonixData(string customName = "FXData.cdf")
         {
             if (!(DependencyCheck.CheckFonixData())) throw new IOException(@"Fonix data not found");
             Create();
@@ -75,22 +75,32 @@ namespace Project_Lykos
             File.Copy(sourcePath, Path.Join(WrapDir, customName));
         }
 
-        public static Task KillProcesses()
+        public static bool KillProcesses()
         {
-            return Task.Run(() =>
-            {   
+            var task = Task.Run(() =>
+            {
                 // If any FaceFXWrapper are running, shut them down
-                foreach (var process in Process.GetProcessesByName("FaceFXWrapperExtended"))
+                foreach (var process in Process.GetProcessesByName("FXExtended"))
                 {
                     process.Kill();
                 }
                 // Wait until all FaceFXWrapper are closed
-                while (Process.GetProcessesByName("FaceFXWrapperExtended").Length > 0)
+                while (Process.GetProcessesByName("FXExtended").Length > 0)
                 {
-                    Task.Delay(500).Wait();
+                    Task.Delay(50).Wait();
                 }
-                Cache.Destroy();
+                try
+                {
+                    Destroy();
+                }
+                catch (Exception e)
+                {
+                    return false;
+                }
+
+                return true;
             });
+            return task.Result;
         }
 
         public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize) 

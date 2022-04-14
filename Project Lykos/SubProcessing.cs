@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using Gt.SubProcess;
 using static Project_Lykos.Cache;
@@ -19,23 +21,20 @@ public class SubProcessing
     private readonly StreamWriter stdInWriter;
     private readonly CancellationTokenSource cancelControl = new();
     private readonly string uuid = Guid.NewGuid().ToString();
-    private readonly string exeName;
-    private readonly string exePath;
-    private readonly string dataName;
     private readonly string dataPath;
+    public readonly int processNumber;
     
     // Private objects
     private SubProcess? subProcess;
     
-    public SubProcessing(ProcessControl parent)
+    public SubProcessing(ProcessControl parent, int processNumber)
     {
+        this.processNumber = processNumber;
         processControl = parent;
         stdInWriter = new StreamWriter(stream);
-        exeName = "FXExtended_" + uuid + ".exe";
-        exePath = Path.Join(Cache.WrapDir, exeName);
-        dataName = "FXData_" + uuid + ".cdf";
+        // Deploy the FonixData for the subprocess
+        var dataName = "FXData_" + uuid + ".cdf";
         dataPath = Path.Join(Cache.WrapDir, dataName);
-        Cache.DeployExecutable(exeName);
         Cache.DeployFonixData(dataName);
     }
 
@@ -97,14 +96,19 @@ public class SubProcessing
     {
         try
         {
-            subProcess = new SubProcess(exePath, "fxe", ArgType, ArgLang, 
+            var affinity = (1 << processNumber);
+            subProcess = new SubProcess( WrapPath, "fxe", ArgType, ArgLang, 
                 dataPath, UseNativeResampler.ToString().ToLower())
             {
-                Out = SubProcess.Capture,
+                Out = SubProcess.Pipe,
                 In = SubProcess.Pipe
             };
             subProcess.Start();
             if (!subProcess.HasStarted) return false;
+
+            var processMember = subProcess.GetType().GetField(("Process"), BindingFlags.Instance | BindingFlags.NonPublic);
+            var processValue = (System.Diagnostics.Process)processMember.GetValue(subProcess);
+            processValue.ProcessorAffinity = (IntPtr) affinity;
         }
         catch (Exception e)
         {
@@ -130,24 +134,33 @@ public class SubProcessing
             // This auto continues if no more lines
             while (reader.ReadLine() is { } outputLine)
             {
+                if (cancelControl.IsCancellationRequested) break;
                 stdOutBuffer.AppendLine(outputLine);
                 parseResult = ParseStartup(outputLine);
-            }
-            switch (parseResult)
-            {
-                case 1:
-                    return true;
-                case 2:
-                    // If error continue to timeout tasks
-                    break;
+                switch (parseResult)
+                {
+                    case 1:
+                        sw.Stop();
+                        return true;
+                    case 2:
+                        // If error
+                        sw.Stop();
+                        subProcess.Kill();
+                        Task.Run(() => WriteLog(stdOutBuffer));
+                        return false;
+                }
             }
         }
         // For timeout
+        sw.Stop();
         subProcess.Kill();
-        WriteLog(stdOutBuffer);
+        Task.Run(() => WriteLog(stdOutBuffer));
         return false;
     }
 
+    
+    
+    
     public bool DoTask(string command)
     {
         // Check process was started
@@ -177,34 +190,37 @@ public class SubProcessing
             var parseResult = 0;
             while (reader.ReadLine() is { } outputLine)
             {
+                if (cancelControl.IsCancellationRequested) break;
                 stdOutBuffer.AppendLine(outputLine);
                 parseResult = ParseOutput(outputLine);
-            }
-            switch (parseResult)
-            {
-                case 1:
-                    return true;
-                case 2:
-                    WriteLog(stdOutBuffer);
-                    return false;
+                switch (parseResult)
+                {
+                    case 1:
+                        return true;
+                    case 2:
+                        Task.Run(() => WriteLog(stdOutBuffer));
+                        return false;
+                }
             }
         }
         sw.Stop();
-        WriteLog(stdOutBuffer);
+        Task.Run(() => WriteLog(stdOutBuffer));
         subProcess.Kill();
         return false;
     }
+
 
     /// <summary>
     /// Writes a string builder to a log file
     /// </summary>
     /// <param name="stringBuilder"></param>
-    private static void WriteLog(StringBuilder stringBuilder)
+    private static async Task WriteLog(StringBuilder stringBuilder)
     {
+        Directory.CreateDirectory(LogDir);
         var uuid = Guid.NewGuid().ToString();
         var fileName = Path.Combine(LogDir, $"{uuid}_FaceFX_Error.log");
         using var writer = File.CreateText(fileName);
-        File.WriteAllTextAsync(fileName, stringBuilder.ToString());
-        writer.FlushAsync();
+        await File.WriteAllTextAsync(fileName, stringBuilder.ToString());
+        await writer.FlushAsync();
     }
 }

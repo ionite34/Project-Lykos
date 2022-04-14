@@ -18,30 +18,31 @@ public class State
     /// <summary>
     /// Records the state of the buttons on the form and disables them
     /// </summary>
-    public void FreezeButtons()
+    public IAsyncResult FreezeButtons()
     {
         buttonStates.Clear();
-        foreach (var button in Buttons)
-        {
-            buttonStates.Add(button, button.Enabled);
-            button.BeginInvoke((MethodInvoker)delegate ()
-            {   // Disable the button
+        return window.BeginInvoke((MethodInvoker)delegate ()
+        {   
+            foreach (var button in Buttons)
+            {
+                buttonStates.Add(button, button.Enabled);
+                // Disable the button
                 button.Enabled = false;
-            });
-        }
+            }
+        });
     }
 
     /// <summary>
     /// Reverts the buttons to their original state
     /// </summary>
-    public void RestoreButtons()
+    public IAsyncResult RestoreButtons()
     {
-        foreach (var button in Buttons)
+        return window.BeginInvoke((MethodInvoker)delegate ()
         {
-            button.BeginInvoke((MethodInvoker)delegate ()
-            {  // Re-enable the button
+            foreach (var button in Buttons)
+            {
                 button.Enabled = buttonStates[button];
-            });
-        }
+            }
+        });
     }
 }

@@ -15,6 +15,9 @@ namespace Project_Lykos
         // Cancellation token for the background worker
         private readonly CancellationTokenSource cts1 = new();
         
+        // Timer
+        private System.Windows.Forms.Timer progressTimer = new();
+        
         public bool Progress1Running { get; set; } = false;
 
         // Background Workers
@@ -52,11 +55,19 @@ namespace Project_Lykos
             state.Buttons.Add(button_preview);
             state.Buttons.Add(button_start_batch);
             state.Buttons.Add(button_stop_batch);
+            
+            progressTimer.Tick += Batch_ProgressChanged;
+            progressTimer.Interval = 370;
         }
         
         private void MainWindow_Load(object sender, EventArgs e)
         {
-            Cache.KillProcesses();
+            var result = Cache.KillProcesses();
+            if (!result)
+            {
+                MessageBox.Show(@"Error in clearing temp directory.", @"Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
         
         // Browse Source button
@@ -141,6 +152,7 @@ namespace Project_Lykos
         {
             await StartBatch().ConfigureAwait(false);
         }
+        
 
         private async Task StartBatch()
         {
@@ -154,16 +166,18 @@ namespace Project_Lykos
             // Now we can start the batch
             try
             {
-                await Task.Run(() => state.FreezeButtons());
+                await Task.Run(state.FreezeButtons);
                 button_stop_batch.Enabled = true;
                 // Set the progress bar
                 progress_total.Style = ProgressBarStyle.Marquee;
                 label_progress_status1A.Text = @"Starting batch processing...";
                 label_progress_status1A.Visible = true;
                 Progress1Running = true;
-                ct.CtProcessControl.ProgressChanged += Batch_ProgressChanged;
-                var procNum = Int32.Parse(combo_multiprocess_count.SelectedText);
-                await Task.Run(() => ct.CtProcessControl.Start(procNum, 200, false, cts1));
+                // ct.CtProcessControl.ProgressChanged += Batch_ProgressChanged;
+                var procNum = combo_multiprocess_count.SelectedIndex + 1;
+                
+                progressTimer.Start();
+                await ct.CtProcessControl.Start(procNum, 200, false, cts1);
             }
             catch (TaskCanceledException cancelException)
             {
@@ -175,9 +189,10 @@ namespace Project_Lykos
             }
             finally
             {
-                Cache.KillProcesses().Wait();
+                progressTimer.Stop();
+                Cache.KillProcesses();
                 ResetUIProgress();
-                await Task.Run(() => state.RestoreButtons());
+                await Task.Run(state.RestoreButtons);
                 // Messagebox with average times, if any were recorded
                 if (Cache.ProcessingTimes.Count > 0)
                 {
@@ -229,11 +244,14 @@ namespace Project_Lykos
         }
         
         // Method to set the progress bar to a percentage event
-        private void Batch_ProgressChanged(int progress, int batchesDone)
+        private void Batch_ProgressChanged(object sender, EventArgs e)
         {
-            if (!Progress1Running) return; 
+            if (!Progress1Running) return;
+            if (ct.CtProcessControl.processedCount == 0) return;
             progress_total.BeginInvoke((MethodInvoker)delegate ()
             {
+                int progress = ct.CtProcessControl.processedCount;
+                int batchesDone = ct.CtProcessControl.CurrentBatch;
                 label_progress_status1A.Text = @"Current batch progress: ";
                 label_progress_value1A.Text = $@"{progress}/{ct.CtProcessControl.BatchSize}";
                 label_progress_value1A.Visible = true;
@@ -308,7 +326,8 @@ namespace Project_Lykos
             List<string> result = new();
             try
             {
-                await Task.Run(() => state.FreezeButtons());
+                //await Task.Run(() => state.FreezeButtons());
+                await Task.Run(state.FreezeButtons);
                 var lb1 = label_progress_status1A;
                 lb1.Text = @"Indexing: ";
                 lb1.Visible = true;
@@ -324,7 +343,8 @@ namespace Project_Lykos
             }
             finally
             {
-                await Task.Run(() => state.RestoreButtons());
+                await Task.Run(state.RestoreButtons);
+                // await Task.Run(() => state.RestoreButtons());
                 ResetUIProgress();
             }
             if (result.Count < 2) return;
