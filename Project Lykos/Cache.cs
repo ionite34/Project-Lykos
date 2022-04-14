@@ -16,7 +16,7 @@ namespace Project_Lykos
         public static string FullTempDir => Path.Join(TempDir, "Lykos_Temp");
         public static string WrapDir => Path.Join(FullTempDir, "Wrapper");
         public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FonixData.cdf");
-        public static string WrapPath => Path.Join(WrapDir, "FaceFXWrapperExtended.exe");
+        public static string WrapPath => Path.Join(WrapDir, "FXExtended.exe");
         public static string AudioDir => Path.Join(FullTempDir, "AudioSource");
         public static string LogDir => Path.Join(Directory.GetCurrentDirectory(), "Logs");
 
@@ -65,7 +65,7 @@ namespace Project_Lykos
             File.WriteAllBytes(writePath, Properties.Resources.FXExtended);
         }
 
-        public static void DeployFonixData(string customName = "FonixData.cdf")
+        public static void DeployFonixData(string customName = "FXData.cdf")
         {
             if (!(DependencyCheck.CheckFonixData())) throw new IOException(@"Fonix data not found");
             Create();
@@ -75,7 +75,7 @@ namespace Project_Lykos
             File.Copy(sourcePath, Path.Join(WrapDir, customName));
         }
 
-        public static Task KillProcesses()
+        public static bool KillProcesses()
         {
             var task = Task.Run(() =>
             {
@@ -100,7 +100,7 @@ namespace Project_Lykos
 
                 return true;
             });
-            return task;
+            return task.Result;
         }
 
         public static IEnumerable<T> DequeueChunk<T>(this Queue<T> queue, int chunkSize) 

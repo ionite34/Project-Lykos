@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using CliWrap;
+using NAudio.Wave;
 
 namespace Project_Lykos
 {
@@ -27,7 +28,7 @@ namespace Project_Lykos
         // Inner Batch Indicators
         private int errorCount;
         private int timeOutCount;
-        private int processedCount;
+        public int processedCount;
         private int lastReportedCount;
         
         // List of workers
@@ -47,6 +48,7 @@ namespace Project_Lykos
             ProgressChanged?.Invoke(progressCount, CurrentBatch);
         }
 
+ 
         private void CheckProgress()
         {
             if (lastReportedCount == processedCount) return;
@@ -118,21 +120,14 @@ namespace Project_Lykos
                 {
                     await ProcessBatch(batchQueue, processCount, cts, useNativeResampling);
                 }
-                catch (TaskCanceledException)
+                finally
                 {
-                    throw new TaskCanceledException("Processing canceled.");
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Error while processing batch: " + ex.Message);
-                }
-
-
-                // Cleanup
-                foreach (var processTask in currentBatch)
-                {
-                    // Delete Temp File
-                    File.Delete(processTask.WavTempPath);
+                    // Cleanup
+                    foreach (var processTask in currentBatch)
+                    {
+                        // Delete Temp File
+                        File.Delete(processTask.WavTempPath);
+                    }
                 }
             }
         }
@@ -151,14 +146,12 @@ namespace Project_Lykos
                 {
                     subProcess.StopAll();
                 }
-                Cache.KillProcesses().Wait();
-                throw new TaskCanceledException();
             });
             
             // Make new workers equal to the process count
             for (var i = 0; i < processCount; i++)
             {
-                Workers.Add(new SubProcessing(this));
+                Workers.Add(new SubProcessing(this, i));
             }
 
             // Start subprocesses
@@ -184,80 +177,62 @@ namespace Project_Lykos
             tasks.Clear();
             // Add new tasks
             foreach (var worker in Workers)
+                tasks.Add(Task.Run(() => RunWorker(batch, worker, cts)));
+
+            await Task.WhenAll(tasks);
+        }
+
+        private void RunWorker(Queue<ProcessTask> batch, SubProcessing worker, CancellationTokenSource cts)
+        {
+            do
             {
-                var task = Task.Factory.StartNew(() =>
+                if (cts.IsCancellationRequested) break;
+                // Dequeue a task and get the command
+                if (batch.TryDequeue(out var processTask))
                 {
-                    while (!cts.IsCancellationRequested)
+                    var command = processTask.GetCommand();
+                    // Check if the output lip folder exists, if not create it
+                    if (!Directory.Exists(Path.GetDirectoryName(processTask.LipOutputPath)))
                     {
-                        // Exit if queue empty
-                        if (batch.Count == 0) return;
-                        // Dequeue a task and get the command
-                        var processTask = batch.Dequeue();
-                        var command = processTask.GetCommand();
-                        // Check if the output lip folder exists, if not create it
-                        if (!Directory.Exists(Path.GetDirectoryName(processTask.LipOutputPath)))
-                        {
-                            var target = Path.GetDirectoryName(processTask.LipOutputPath)!;
-                            Directory.CreateDirectory(target);
-                        }
-                        // Start timer
-                        // var timer = new System.Diagnostics.Stopwatch();
-                        // timer.Start();
-                        // Run the command
-                        var result = worker.DoTask(command);
+                        var target = Path.GetDirectoryName(processTask.LipOutputPath)!;
+                        Directory.CreateDirectory(target);
+                    }
+
+                    // Start timer
+                    // var timer = new System.Diagnostics.Stopwatch();
+                    // timer.Start();
+                    // Run the command
+                    var sw1 = System.Diagnostics.Stopwatch.StartNew();
+                    var result = worker.DoTask(command);
+                    sw1.Stop();
+                    System.Diagnostics.Debug.WriteLine($@"P [{worker.processNumber}], time: {sw1.ElapsedMilliseconds}ms");
+                    // If failed, retry up to 1 time
+                    if (!result)
+                    {
                         // If failed, retry up to 1 time
-                        if (!result)
+                        if (processTask.RetryCount < MaxRetryCount)
                         {
-                            // If failed, retry up to 1 time
-                            if (processTask.RetryCount < MaxRetryCount)
-                            {   // For retry, put it back in the queue
-                                batch.Enqueue(processTask);
-                                processTask.RetryCount++;
-                            }
-                            else
-                            {
-                                // Increment process and error count
-                                Interlocked.Increment(ref errorCount);
-                                Interlocked.Increment(ref processedCount);
-                            }
+                            // For retry, put it back in the queue
+                            batch.Enqueue(processTask);
+                            processTask.RetryCount++;
                         }
                         else
                         {
-                            // Write time to cache
-                            // timer.Stop();
-                            // Cache.ProcessingTimes.Add(timer.ElapsedMilliseconds);
-                            // Increment processed count
+                            // Increment process and error count
+                            Interlocked.Increment(ref errorCount);
                             Interlocked.Increment(ref processedCount);
                         }
-                        // Update Progress
-                        CheckProgress();
                     }
-                    if (cts.IsCancellationRequested)
-                        throw new TaskCanceledException();
-                }, TaskCreationOptions.LongRunning);
-                tasks.Add(task);
-            }
-
-            try
-            {
-                await Task.WhenAll(tasks);
-            }
-            catch (TaskCanceledException ex)
-            {
-                throw new TaskCanceledException("Task was cancelled.", ex);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Error while running tasks.", ex);
-            }
-
-
-            while (batch.Count > 0)
-            {
-                //subProcess.StopAll();
-            }
-            
-            Console.WriteLine(@"Processing complete.");
+                    else
+                    {
+                        // Write time to cache
+                        // timer.Stop();
+                        // Cache.ProcessingTimes.Add(timer.ElapsedMilliseconds);
+                        // Increment processed count
+                        Interlocked.Increment(ref processedCount);
+                    }
+                }
+            } while (batch.Count > 0);
         }
         
         // Process single batch
