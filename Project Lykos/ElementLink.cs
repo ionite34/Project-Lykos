@@ -23,7 +23,7 @@ namespace Project_Lykos
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public static IProgress<(double current, double total)> LinkProgressBar2L(MainWindow window, ProgressBar progressbar, Label value, Label status, string statusText, bool usePercent = false, bool displayTotal = false)
+        public static IProgress<(double current, double total)> LinkProgressBar2L(IMainWindow window, ProgressBar progressbar, Label value, Label status, string statusText, bool usePercent = false, bool displayTotal = false)
         {
             var progress = new Progress<(double current, double total)>(update =>
             {
@@ -119,7 +119,7 @@ namespace Project_Lykos
     /// <returns></returns>
     /// <exception cref="InvalidOperationException"></exception>
     /// <exception cref="IndexOutOfRangeException"></exception>
-    public static IProgress<(int current, int total)> LinkProgressBarInt2L(MainWindow window, ProgressBar progressbar, Label value, Label status, bool usePercent = false, bool displayTotal = false)
+    public static IProgress<(int current, int total)> LinkProgressBarInt2L(IMainWindow window, ProgressBar progressbar, Label value, Label status, bool usePercent = false, bool displayTotal = false)
         {
             var progress = new Progress<(int current, int total)>(update =>
             {

@@ -5,7 +5,13 @@ VisualStudioVersion = 17.2.32317.152
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Project Lykos", "Project Lykos\Project Lykos.csproj", "{75193341-C359-4D93-BDB2-70675E28C646}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project Lykos Test", "Project Lykos Test\Project Lykos Test.csproj", "{E1A47E08-B51D-40BD-8727-BF24DED0548F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Project Lykos Test", "Project Lykos Test\Project Lykos Test.csproj", "{E1A47E08-B51D-40BD-8727-BF24DED0548F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Project Lykos Master", "Project Lykos Master\Project Lykos Master.csproj", "{4E79C2F5-6EFB-4A0B-91D7-6BC08B63532B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project Lykos Core", "Project Lykos Core\Project Lykos Core.csproj", "{8E9EE9DA-4E41-4B6B-B0B3-1B659739AEF0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Project Lykos Worker", "Project Lykos Worker\Project Lykos Worker.csproj", "{88205D0C-2597-4DD0-957D-0B02AFBA916B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +27,18 @@ Global
 		{E1A47E08-B51D-40BD-8727-BF24DED0548F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1A47E08-B51D-40BD-8727-BF24DED0548F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1A47E08-B51D-40BD-8727-BF24DED0548F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4E79C2F5-6EFB-4A0B-91D7-6BC08B63532B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4E79C2F5-6EFB-4A0B-91D7-6BC08B63532B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4E79C2F5-6EFB-4A0B-91D7-6BC08B63532B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4E79C2F5-6EFB-4A0B-91D7-6BC08B63532B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E9EE9DA-4E41-4B6B-B0B3-1B659739AEF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E9EE9DA-4E41-4B6B-B0B3-1B659739AEF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E9EE9DA-4E41-4B6B-B0B3-1B659739AEF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E9EE9DA-4E41-4B6B-B0B3-1B659739AEF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88205D0C-2597-4DD0-957D-0B02AFBA916B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88205D0C-2597-4DD0-957D-0B02AFBA916B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88205D0C-2597-4DD0-957D-0B02AFBA916B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88205D0C-2597-4DD0-957D-0B02AFBA916B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

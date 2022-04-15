@@ -37,6 +37,8 @@
             this.linkLabel_download = new System.Windows.Forms.LinkLabel();
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             this.label_3 = new System.Windows.Forms.Label();
+            this.linkLabel1 = new System.Windows.Forms.LinkLabel();
+            this.label2 = new System.Windows.Forms.Label();
             this.tableLayoutPanel1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.SuspendLayout();
@@ -99,7 +101,7 @@
             this.label_2.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label_2.Location = new System.Drawing.Point(3, 0);
             this.label_2.Name = "label_2";
-            this.label_2.Size = new System.Drawing.Size(252, 33);
+            this.label_2.Size = new System.Drawing.Size(169, 33);
             this.label_2.TabIndex = 2;
             this.label_2.Text = "You can also download it from:";
             this.label_2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -108,9 +110,9 @@
             // 
             this.linkLabel_download.AutoSize = true;
             this.linkLabel_download.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.linkLabel_download.Location = new System.Drawing.Point(261, 0);
+            this.linkLabel_download.Location = new System.Drawing.Point(178, 0);
             this.linkLabel_download.Name = "linkLabel_download";
-            this.linkLabel_download.Size = new System.Drawing.Size(239, 33);
+            this.linkLabel_download.Size = new System.Drawing.Size(322, 33);
             this.linkLabel_download.TabIndex = 3;
             this.linkLabel_download.TabStop = true;
             this.linkLabel_download.Text = "Nexus Mods";
@@ -139,15 +141,41 @@
             this.label_3.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.label_3.Location = new System.Drawing.Point(27, 180);
             this.label_3.Name = "label_3";
-            this.label_3.Size = new System.Drawing.Size(480, 24);
+            this.label_3.Size = new System.Drawing.Size(118, 16);
             this.label_3.TabIndex = 5;
-            this.label_3.Text = "Place the file into the same directory as this tool to continue.";
+            this.label_3.Text = "Place the file into the";
+            // 
+            // linkLabel1
+            // 
+            this.linkLabel1.AutoSize = true;
+            this.linkLabel1.Location = new System.Drawing.Point(141, 180);
+            this.linkLabel1.Margin = new System.Windows.Forms.Padding(0);
+            this.linkLabel1.Name = "linkLabel1";
+            this.linkLabel1.Size = new System.Drawing.Size(144, 16);
+            this.linkLabel1.TabIndex = 6;
+            this.linkLabel1.TabStop = true;
+            this.linkLabel1.Text = "same directory as this tool";
+            this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
+            // 
+            // label2
+            // 
+            this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.label2.AutoSize = true;
+            this.label2.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.label2.Location = new System.Drawing.Point(281, 180);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(71, 16);
+            this.label2.TabIndex = 8;
+            this.label2.Text = "to continue.";
             // 
             // DependencyDialog
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 24F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(543, 296);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.linkLabel1);
             this.Controls.Add(this.label_3);
             this.Controls.Add(this.tableLayoutPanel2);
             this.Controls.Add(this.label_1);
@@ -175,5 +203,7 @@
         private LinkLabel linkLabel_download;
         private TableLayoutPanel tableLayoutPanel2;
         private Label label_3;
+        private LinkLabel linkLabel1;
+        private Label label2;
     }
 }

@@ -1,0 +1,11 @@
+﻿{
+  "profiles": {
+    "Project_Lykos_Worker": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

@@ -71,5 +71,11 @@ namespace Project_Lykos
             this.DialogResult = DialogResult.OK;
             this.Close();
         }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            // Open the current folder in Windows Explorer to show user where to put the file
+            Process.Start("explorer", DependencyCheck.GetFonixDataFolder());
+        }
     }
 }

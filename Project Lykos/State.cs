@@ -3,12 +3,12 @@ namespace Project_Lykos;
 public class State
 {
     // Records current states of the form
-    private readonly MainWindow window;
+    private readonly IMainWindow window;
     // Dictionary of buttons and states
     private readonly Dictionary<Control, bool> buttonStates = new();
     // List of buttons to scan
     public List<Control> Buttons { set; get; } = new();
-    public State(MainWindow form)
+    public State(IMainWindow form)
     {
         this.window = form;
     }

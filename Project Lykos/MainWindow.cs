@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace Project_Lykos
 {
     using static ElementLink;
-    public partial class MainWindow : Form
+    public partial class MainWindow : Form, IMainWindow
     {
         private readonly LykosController ct = new();
         private readonly State state;

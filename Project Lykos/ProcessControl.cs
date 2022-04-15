@@ -151,7 +151,7 @@ namespace Project_Lykos
             // Make new workers equal to the process count
             for (var i = 0; i < processCount; i++)
             {
-                Workers.Add(new SubProcessing(this, i));
+                Workers.Add(new SubProcessing(i, true));
             }
 
             // Start subprocesses
