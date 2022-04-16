@@ -84,9 +84,13 @@ namespace Project_Lykos
                 {
                     process.Kill();
                 }
+                // Start a stopwatch for timeout
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
                 // Wait until all FaceFXWrapper are closed
                 while (Process.GetProcessesByName("FXExtended").Length > 0)
                 {
+                    if (stopwatch.ElapsedMilliseconds > 5000) return false;
                     Task.Delay(50).Wait();
                 }
                 try
