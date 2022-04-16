@@ -21,13 +21,6 @@ namespace Project_Lykos
 
         public bool Progress1Running { get; set; } = false;
 
-        // Background Workers
-        private readonly BackgroundWorker worker = new()
-        {
-            WorkerSupportsCancellation = false,
-            WorkerReportsProgress = true,
-        };
-        
         // Tooltip
         private readonly ToolTip _labelTips = new();
 
