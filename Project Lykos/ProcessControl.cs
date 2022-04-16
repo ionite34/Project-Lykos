@@ -24,11 +24,12 @@ namespace Project_Lykos
         public int BatchSize { get; set; }
         public int CurrentBatch { get; set; }
         public int TotalBatches { get; set; }
+        public int TotalProcessed { get; set; }
         
         // Inner Batch Indicators
         private int errorCount;
         private int timeOutCount;
-        public int processedCount;
+        public int ProcessedCount;
         private int lastReportedCount;
         
         // List of workers
@@ -51,9 +52,9 @@ namespace Project_Lykos
  
         private void CheckProgress()
         {
-            if (lastReportedCount == processedCount) return;
-            OnProgressChanged(processedCount);
-            lastReportedCount = processedCount;
+            if (lastReportedCount == ProcessedCount) return;
+            OnProgressChanged(ProcessedCount);
+            lastReportedCount = ProcessedCount;
         }
 
         public Task EStop()
@@ -87,6 +88,13 @@ namespace Project_Lykos
             while (this.Count > 0)
             {
                 CurrentBatch++;
+
+                // Reset counters
+                errorCount = 0;
+                timeOutCount = 0;
+                ProcessedCount = 0;
+                lastReportedCount = 0;
+                
                 // Batch size is either the remaining tasks or the max batch size
                 var currentBatchSize = Math.Min(batchSize, this.Count);
                 // Build the current batch by removing the first batchSize tasks from the queue
@@ -118,6 +126,9 @@ namespace Project_Lykos
                 // Start the batch
                 try
                 {
+                    // Start workers if not already running
+                    if (!AllWorkersRunning()) { await StartWorkers(cts, processCount); }
+                    // Do process batch
                     await ProcessBatch(batchQueue, processCount, cts, useNativeResampling);
                 }
                 finally
@@ -128,18 +139,23 @@ namespace Project_Lykos
                         // Delete Temp File
                         File.Delete(processTask.WavTempPath);
                     }
+                    // Increment the processed count
+                    TotalProcessed += ProcessedCount;
                 }
             }
         }
         
-        // New Process Batch
-        private async Task ProcessBatch(Queue<ProcessTask> batch, int processCount, CancellationTokenSource cts, bool useNativeResampling)
+        // Returns true if all workers are running
+        public bool AllWorkersRunning()
         {
-            errorCount = 0;
-            timeOutCount = 0;
-            processedCount = 0;
-            lastReportedCount = 0;
-            // Register to kill all subprocesses if the user cancels
+            if (Workers.Count == 0) { return false; }
+            return Workers.All(worker => worker.IsRunning());
+        }
+        
+        // Start all workers
+        public async Task StartWorkers(CancellationTokenSource cts, int processCount)
+        {
+            // Register to stop all subprocesses if the user cancels
             cts.Token.Register(() =>
             {
                 foreach (var subProcess in Workers)
@@ -162,6 +178,8 @@ namespace Project_Lykos
                 tasks.Add(startTask);
             }
             await Task.WhenAll(tasks);
+            
+            // Check results
             var results = tasks.Select(task => ((Task<bool>) task).Result).ToList();
             // If any of the subprocesses failed, throw an exception
             if (results.Any(result => !result))
@@ -169,12 +187,12 @@ namespace Project_Lykos
                 cts.Cancel();
                 throw new Exception("Error while starting subprocesses.");
             }
-            
-            // Pause for a second to let the subprocesses start
-            // await Task.Delay(1000);
-            
-            // Clear tasks
-            tasks.Clear();
+        }
+        
+        // New Process Batch
+        private async Task ProcessBatch(Queue<ProcessTask> batch, int processCount, CancellationTokenSource cts, bool useNativeResampling)
+        {
+            var tasks = new List<Task>();
             // Add new tasks
             foreach (var worker in Workers)
                 tasks.Add(Task.Run(() => RunWorker(batch, worker, cts)));
@@ -220,7 +238,7 @@ namespace Project_Lykos
                         {
                             // Increment process and error count
                             Interlocked.Increment(ref errorCount);
-                            Interlocked.Increment(ref processedCount);
+                            Interlocked.Increment(ref ProcessedCount);
                         }
                     }
                     else
@@ -229,7 +247,7 @@ namespace Project_Lykos
                         // timer.Stop();
                         // Cache.ProcessingTimes.Add(timer.ElapsedMilliseconds);
                         // Increment processed count
-                        Interlocked.Increment(ref processedCount);
+                        Interlocked.Increment(ref ProcessedCount);
                     }
                 }
             } while (batch.Count > 0);
@@ -240,7 +258,7 @@ namespace Project_Lykos
         {
             errorCount = 0;
             timeOutCount = 0;
-            processedCount = 0;
+            ProcessedCount = 0;
             lastReportedCount = 0;
 
             var options = new ParallelOptions()
@@ -252,9 +270,9 @@ namespace Project_Lykos
             Parallel.ForEach(batch, options, task =>
             {
                 // Abort if process count is between 0 and 100 and error count exceeds 25
-                var c1 = processedCount < 100 && errorCount > 25;
+                var c1 = ProcessedCount < 100 && errorCount > 25;
                 // Also abort if process count more than 100 but error exceeds 30%
-                var c2 = processedCount > 100 && errorCount > (processedCount / 4);
+                var c2 = ProcessedCount > 100 && errorCount > (ProcessedCount / 4);
                 if (c1 || c2)
                 {
                     cts.Cancel();
@@ -266,7 +284,7 @@ namespace Project_Lykos
                 var result = worker.Result;
                 if (result is 1 or 2) Interlocked.Increment(ref this.errorCount); // Error includes timeout
                 if (result is 2) Interlocked.Increment(ref this.timeOutCount); // Timeout count
-                Interlocked.Increment(ref this.processedCount); // Total processed count
+                Interlocked.Increment(ref this.ProcessedCount); // Total processed count
                 CheckProgress(); // Check progress
             });
         }
