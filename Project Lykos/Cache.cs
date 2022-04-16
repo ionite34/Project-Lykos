@@ -79,6 +79,10 @@ namespace Project_Lykos
         {
             var task = Task.Run(() =>
             {
+                // Check if any 'FXExtended.exe' processes are running
+                var processes = Process.GetProcessesByName("FXExtended");
+                if (processes.Length == 0) return true;
+
                 // If any FaceFXWrapper are running, shut them down
                 foreach (var process in Process.GetProcessesByName("FXExtended"))
                 {
@@ -93,15 +97,6 @@ namespace Project_Lykos
                     if (stopwatch.ElapsedMilliseconds > 5000) return false;
                     Task.Delay(50).Wait();
                 }
-                try
-                {
-                    Destroy();
-                }
-                catch (Exception e)
-                {
-                    return false;
-                }
-
                 return true;
             });
             return task.Result;
