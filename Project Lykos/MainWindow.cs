@@ -18,9 +18,7 @@ namespace Project_Lykos
         // Timer
         private System.Windows.Forms.Timer progressTimer = new();
         private int queueSize = 0;
-        private DateTime lastTimeEstimate;
-        private int lastFilesProcessed;
-        
+
         public bool Progress1Running { get; set; } = false;
 
         // Background Workers
@@ -60,7 +58,7 @@ namespace Project_Lykos
             state.Buttons.Add(button_stop_batch);
             
             progressTimer.Tick += Batch_ProgressChanged;
-            progressTimer.Interval = 370;
+            progressTimer.Interval = 50;
         }
         
         private void MainWindow_Load(object sender, EventArgs e)
@@ -134,23 +132,14 @@ namespace Project_Lykos
             if (ofd.ShowDialog(this) != DialogResult.OK) return;
             await ParseCSV(ofd.FileName).ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Starts the index preview process
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        
+        // Index button
         private async void button_preview_Click(object sender, EventArgs e)
         {
             await DoIndex();
         }
         
-        /// <summary>
-        /// Starts the batch process
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        /// <exception cref="NotImplementedException"></exception>
+        // Start batch button
         private async void button_start_batch_Click(object sender, EventArgs e)
         {
             await StartBatch().ConfigureAwait(false);
@@ -177,7 +166,7 @@ namespace Project_Lykos
                 progress_total.Style = ProgressBarStyle.Marquee;
                 label_progress_status1A.Text = @"Starting batch processing...";
                 label_progress_status1A.Visible = true;
-                Progress1Running = true;
+                Progress1Running = true; // Set flag for progress update
                 // ct.CtProcessControl.ProgressChanged += Batch_ProgressChanged;
                 var procNum = combo_multiprocess_count.SelectedIndex + 1;
                 
@@ -195,12 +184,16 @@ namespace Project_Lykos
             finally
             {
                 progressTimer.Stop();
-                Cache.KillProcesses();
-                ResetUIProgress();
-                await Task.Run(state.RestoreButtons);
+                Progress1Running = false; // Remove flag for progress update
+                ResetUIProgress(); // Reset the progress bar and labels
+                
+                // Show some results via message box
                 var outputCount = ct.CtProcessControl.TotalProcessed;
                 var msg = $@"Total files output: {outputCount}/{queueSize}";
-                MessageBox.Show(msg, @"Batch processing completed", MessageBoxButtons.OK, MessageBoxIcon.Information); 
+                MessageBox.Show(msg, @"Batch processing completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // Restore buttons
+                await Task.Run(state.RestoreButtons);
             }
         }
         
@@ -244,12 +237,40 @@ namespace Project_Lykos
             }
         }
         
-        // Method to set the progress bar to a percentage event
-        private void Batch_ProgressChanged(object sender, EventArgs e)
+        // Try to stop the process
+        private async Task TryStopClearTemp()
         {
-            if (!Progress1Running) return;
+            // Begin Kill process and remove temp files
+            await ct.CtProcessControl.EStop();
+            var confirmKilled = Cache.KillProcesses();
+            if (confirmKilled)
+            {
+                // Try to remove the temp files
+                try
+                {
+                    Cache.Destroy();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($@"Could not remove temp files: {ex.Message}", 
+                        @"Error removing temp files", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                // Show error
+                MessageBox.Show(@"Could not stop subprocesses.", 
+                    @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        
+        // Method to set the progress bar to a percentage event
+        private void Batch_ProgressChanged(object? sender, EventArgs e)
+        {
+            if (!Progress1Running) return; // Stop if progress report flag is false
             progress_total.BeginInvoke((MethodInvoker)delegate ()
             {
+                // Check if process count is 0, show marquee
                 if (ct.CtProcessControl.ProcessedCount == 0)
                 {
                     if (progress_total.Style != ProgressBarStyle.Marquee)
@@ -260,38 +281,25 @@ namespace Project_Lykos
                     }
                     return;
                 }
-                // Do not check estimate if start
-                var estDuration = 0.0;
-                if (lastFilesProcessed != 0)
-                {
-                    estDuration = DateTime.UtcNow.Subtract(lastTimeEstimate).TotalSeconds;
-                }
-                else
-                {
-                    lastTimeEstimate = DateTime.UtcNow;
-                    lastFilesProcessed = ct.CtProcessControl.ProcessedCount;
-                }
-                // Check if 30 second has passed since the last time estimate was calculated
-                if (estDuration >= 10)
-                {
-                    var estFiles = ct.CtProcessControl.TotalProcessed - lastFilesProcessed;
-                    // Calculate the estimated time spent per file in seconds
-                    var estTimePerFile = estDuration / estFiles;
-                    // Calculate the remaining files
-                    var remainingFiles = queueSize - ct.CtProcessControl.TotalProcessed;
-                    // Calculate the estimated time spent for the remaining files in seconds
-                    var estTimeRemaining = estTimePerFile * remainingFiles;
-                    // Parse to hours, minutes and seconds
-                    var estHMS = TimeSpan.FromSeconds(estTimeRemaining).ToString(@"hh\:mm\:ss");
-                    // Update the label
-                    label_progress_status2A.Text = $@"Estimated time to completion: ";
-                    label_progress_value2A.Text = $@"{estHMS}";
-                    label_progress_status2A.Visible = true;
-                    label_progress_value2A.Visible = true;
-                    // Update the last time estimate
-                    lastTimeEstimate = DateTime.UtcNow;
-                    lastFilesProcessed = estFiles;
-                }
+                
+                var estFiles = ct.CtProcessControl.TotalProcessed - lastFilesProcessed;
+                // Calculate the estimated time spent per file in seconds
+                var estTimePerFile = estDuration / estFiles;
+                // Calculate the remaining files
+                var remainingFiles = queueSize - ct.CtProcessControl.TotalProcessed;
+                // Calculate the estimated time spent for the remaining files in seconds
+                var estTimeRemaining = estTimePerFile * remainingFiles;
+                // Parse to hours, minutes and seconds
+                var estHMS = TimeSpan.FromSeconds(estTimeRemaining).ToString(@"hh\:mm\:ss");
+                // Update the label
+                label_progress_status2A.Text = $@"Estimated time to completion: ";
+                label_progress_value2A.Text = $@"{estHMS}";
+                label_progress_status2A.Visible = true;
+                label_progress_value2A.Visible = true;
+                // Update the last time estimate
+                lastTimeEstimate = DateTime.UtcNow;
+                lastFilesProcessed = estFiles;
+                
                 int progress = ct.CtProcessControl.ProcessedCount;
                 int batchesDone = ct.CtProcessControl.CurrentBatch;
                 label_progress_status1A.Text = @"Current batch progress: ";
