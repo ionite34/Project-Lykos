@@ -32,7 +32,7 @@
             this.button_preview = new System.Windows.Forms.Button();
             this.LayoutPanel_LowerButtons = new System.Windows.Forms.TableLayoutPanel();
             this.button_start_batch = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
+            this.button_additional = new System.Windows.Forms.Button();
             this.button_stop_batch = new System.Windows.Forms.Button();
             this.listView1 = new System.Windows.Forms.ListView();
             this.progress_total = new System.Windows.Forms.ProgressBar();
@@ -58,25 +58,25 @@
             this.button_browse_source = new System.Windows.Forms.Button();
             this.Group_ProcessingView = new System.Windows.Forms.GroupBox();
             this.Group_TotalProgress = new System.Windows.Forms.GroupBox();
+            this.tableLayoutPanel4 = new System.Windows.Forms.TableLayoutPanel();
+            this.label_batch_value = new System.Windows.Forms.Label();
+            this.label_batch_status = new System.Windows.Forms.Label();
+            this.progress_batch = new System.Windows.Forms.ProgressBar();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.label_progress_value2A = new System.Windows.Forms.Label();
             this.label_progress_status2A = new System.Windows.Forms.Label();
             this.label_progress_value1A = new System.Windows.Forms.Label();
             this.label_progress_status1A = new System.Windows.Forms.Label();
             this.Group_Settings = new System.Windows.Forms.GroupBox();
-            this.progress_batch = new System.Windows.Forms.ProgressBar();
-            this.tableLayoutPanel4 = new System.Windows.Forms.TableLayoutPanel();
-            this.label_batch_value = new System.Windows.Forms.Label();
-            this.label_batch_status = new System.Windows.Forms.Label();
             this.LayoutPanel_LowerButtons.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
             this.Group_Paths.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.Group_ProcessingView.SuspendLayout();
             this.Group_TotalProgress.SuspendLayout();
+            this.tableLayoutPanel4.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.Group_Settings.SuspendLayout();
-            this.tableLayoutPanel4.SuspendLayout();
             this.SuspendLayout();
             // 
             // button_preview
@@ -99,7 +99,7 @@
             this.LayoutPanel_LowerButtons.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.LayoutPanel_LowerButtons.Controls.Add(this.button_preview, 0, 0);
             this.LayoutPanel_LowerButtons.Controls.Add(this.button_start_batch, 1, 0);
-            this.LayoutPanel_LowerButtons.Controls.Add(this.button3, 0, 1);
+            this.LayoutPanel_LowerButtons.Controls.Add(this.button_additional, 0, 1);
             this.LayoutPanel_LowerButtons.Controls.Add(this.button_stop_batch, 1, 1);
             this.LayoutPanel_LowerButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.LayoutPanel_LowerButtons.Location = new System.Drawing.Point(0, 655);
@@ -124,17 +124,17 @@
             this.button_start_batch.UseVisualStyleBackColor = true;
             this.button_start_batch.Click += new System.EventHandler(this.button_start_batch_Click);
             // 
-            // button3
+            // button_additional
             // 
-            this.button3.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.button3.Enabled = false;
-            this.button3.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
-            this.button3.Location = new System.Drawing.Point(13, 68);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(506, 49);
-            this.button3.TabIndex = 2;
-            this.button3.Text = "Settings";
-            this.button3.UseVisualStyleBackColor = true;
+            this.button_additional.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.button_additional.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
+            this.button_additional.Location = new System.Drawing.Point(13, 68);
+            this.button_additional.Name = "button_additional";
+            this.button_additional.Size = new System.Drawing.Size(506, 49);
+            this.button_additional.TabIndex = 2;
+            this.button_additional.Text = "Tools and Settings";
+            this.button_additional.UseVisualStyleBackColor = true;
+            this.button_additional.Click += new System.EventHandler(this.button_additional_Click);
             // 
             // button_stop_batch
             // 
@@ -458,6 +458,48 @@
             this.Group_TotalProgress.TabStop = false;
             this.Group_TotalProgress.Text = "Progress";
             // 
+            // tableLayoutPanel4
+            // 
+            this.tableLayoutPanel4.ColumnCount = 2;
+            this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanel4.Controls.Add(this.label_batch_value, 1, 0);
+            this.tableLayoutPanel4.Controls.Add(this.label_batch_status, 0, 0);
+            this.tableLayoutPanel4.Location = new System.Drawing.Point(16, 161);
+            this.tableLayoutPanel4.Name = "tableLayoutPanel4";
+            this.tableLayoutPanel4.RowCount = 1;
+            this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(467, 37);
+            this.tableLayoutPanel4.TabIndex = 8;
+            // 
+            // label_batch_value
+            // 
+            this.label_batch_value.AutoSize = true;
+            this.label_batch_value.Location = new System.Drawing.Point(133, 0);
+            this.label_batch_value.Name = "label_batch_value";
+            this.label_batch_value.Size = new System.Drawing.Size(47, 24);
+            this.label_batch_value.TabIndex = 4;
+            this.label_batch_value.Text = "5/85";
+            this.label_batch_value.Visible = false;
+            // 
+            // label_batch_status
+            // 
+            this.label_batch_status.AutoSize = true;
+            this.label_batch_status.Location = new System.Drawing.Point(3, 0);
+            this.label_batch_status.Name = "label_batch_status";
+            this.label_batch_status.Size = new System.Drawing.Size(124, 24);
+            this.label_batch_status.TabIndex = 5;
+            this.label_batch_status.Text = "Current Batch:";
+            this.label_batch_status.Visible = false;
+            // 
+            // progress_batch
+            // 
+            this.progress_batch.Location = new System.Drawing.Point(16, 122);
+            this.progress_batch.Name = "progress_batch";
+            this.progress_batch.Size = new System.Drawing.Size(467, 36);
+            this.progress_batch.TabIndex = 6;
+            this.progress_batch.Visible = false;
+            // 
             // tableLayoutPanel1
             // 
             this.tableLayoutPanel1.ColumnCount = 2;
@@ -527,48 +569,6 @@
             this.Group_Settings.TabStop = false;
             this.Group_Settings.Text = "Settings";
             // 
-            // progress_batch
-            // 
-            this.progress_batch.Location = new System.Drawing.Point(16, 122);
-            this.progress_batch.Name = "progress_batch";
-            this.progress_batch.Size = new System.Drawing.Size(467, 36);
-            this.progress_batch.TabIndex = 6;
-            this.progress_batch.Visible = false;
-            // 
-            // tableLayoutPanel4
-            // 
-            this.tableLayoutPanel4.ColumnCount = 2;
-            this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel4.Controls.Add(this.label_batch_value, 1, 0);
-            this.tableLayoutPanel4.Controls.Add(this.label_batch_status, 0, 0);
-            this.tableLayoutPanel4.Location = new System.Drawing.Point(16, 161);
-            this.tableLayoutPanel4.Name = "tableLayoutPanel4";
-            this.tableLayoutPanel4.RowCount = 1;
-            this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel4.Size = new System.Drawing.Size(467, 37);
-            this.tableLayoutPanel4.TabIndex = 8;
-            // 
-            // label_batch_value
-            // 
-            this.label_batch_value.AutoSize = true;
-            this.label_batch_value.Location = new System.Drawing.Point(133, 0);
-            this.label_batch_value.Name = "label_batch_value";
-            this.label_batch_value.Size = new System.Drawing.Size(47, 24);
-            this.label_batch_value.TabIndex = 4;
-            this.label_batch_value.Text = "5/85";
-            this.label_batch_value.Visible = false;
-            // 
-            // label_batch_status
-            // 
-            this.label_batch_status.AutoSize = true;
-            this.label_batch_status.Location = new System.Drawing.Point(3, 0);
-            this.label_batch_status.Name = "label_batch_status";
-            this.label_batch_status.Size = new System.Drawing.Size(124, 24);
-            this.label_batch_status.TabIndex = 5;
-            this.label_batch_status.Text = "Current Batch:";
-            this.label_batch_status.Visible = false;
-            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 24F);
@@ -593,11 +593,11 @@
             this.tableLayoutPanel2.PerformLayout();
             this.Group_ProcessingView.ResumeLayout(false);
             this.Group_TotalProgress.ResumeLayout(false);
+            this.tableLayoutPanel4.ResumeLayout(false);
+            this.tableLayoutPanel4.PerformLayout();
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.Group_Settings.ResumeLayout(false);
-            this.tableLayoutPanel4.ResumeLayout(false);
-            this.tableLayoutPanel4.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -607,7 +607,7 @@
         private Button button_preview;
         private TableLayoutPanel LayoutPanel_LowerButtons;
         private Button button_start_batch;
-        private Button button3;
+        private Button button_additional;
         private Button button_stop_batch;
         private ListView listView1;
         private ProgressBar progress_total;
