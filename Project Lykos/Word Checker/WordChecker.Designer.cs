@@ -43,11 +43,11 @@
             this.check_ShowDict = new System.Windows.Forms.CheckBox();
             this.check_ShowIgnore = new System.Windows.Forms.CheckBox();
             this.tableLayoutPanel_data_parent = new System.Windows.Forms.TableLayoutPanel();
+            this.group_data_lines = new System.Windows.Forms.GroupBox();
+            this.dataGridView2 = new System.Windows.Forms.DataGridView();
             this.group_actions = new System.Windows.Forms.GroupBox();
             this.tableLayoutPanel_actions = new System.Windows.Forms.TableLayoutPanel();
             this.button_refresh = new System.Windows.Forms.Button();
-            this.group_data_lines = new System.Windows.Forms.GroupBox();
-            this.dataGridView2 = new System.Windows.Forms.DataGridView();
             this.Group_Paths.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView1)).BeginInit();
@@ -55,10 +55,10 @@
             this.group_filters.SuspendLayout();
             this.tableLayoutPanel_filters.SuspendLayout();
             this.tableLayoutPanel_data_parent.SuspendLayout();
-            this.group_actions.SuspendLayout();
-            this.tableLayoutPanel_actions.SuspendLayout();
             this.group_data_lines.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).BeginInit();
+            this.group_actions.SuspendLayout();
+            this.tableLayoutPanel_actions.SuspendLayout();
             this.SuspendLayout();
             // 
             // Group_Paths
@@ -104,6 +104,7 @@
             this.button_browse_dict.TabIndex = 7;
             this.button_browse_dict.Text = "...";
             this.button_browse_dict.UseVisualStyleBackColor = true;
+            this.button_browse_dict.Click += new System.EventHandler(this.Button_browse_dict_Click);
             // 
             // combo_dict
             // 
@@ -154,6 +155,7 @@
             this.button_browse_csv.TabIndex = 6;
             this.button_browse_csv.Text = "...";
             this.button_browse_csv.UseVisualStyleBackColor = true;
+            this.button_browse_csv.Click += new System.EventHandler(this.Button_browse_csv_Click);
             // 
             // dataGridView1
             // 
@@ -243,6 +245,31 @@
             this.tableLayoutPanel_data_parent.Size = new System.Drawing.Size(1262, 903);
             this.tableLayoutPanel_data_parent.TabIndex = 15;
             // 
+            // group_data_lines
+            // 
+            this.group_data_lines.Controls.Add(this.dataGridView2);
+            this.group_data_lines.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.group_data_lines.Location = new System.Drawing.Point(634, 3);
+            this.group_data_lines.Name = "group_data_lines";
+            this.group_data_lines.Size = new System.Drawing.Size(625, 897);
+            this.group_data_lines.TabIndex = 14;
+            this.group_data_lines.TabStop = false;
+            this.group_data_lines.Text = "Word Usages in Lines";
+            // 
+            // dataGridView2
+            // 
+            this.dataGridView2.AllowUserToAddRows = false;
+            this.dataGridView2.AllowUserToDeleteRows = false;
+            this.dataGridView2.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView2.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.dataGridView2.Location = new System.Drawing.Point(3, 27);
+            this.dataGridView2.Name = "dataGridView2";
+            this.dataGridView2.ReadOnly = true;
+            this.dataGridView2.RowHeadersWidth = 62;
+            this.dataGridView2.RowTemplate.Height = 33;
+            this.dataGridView2.Size = new System.Drawing.Size(619, 867);
+            this.dataGridView2.TabIndex = 12;
+            // 
             // group_actions
             // 
             this.group_actions.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -277,32 +304,7 @@
             this.button_refresh.TabIndex = 0;
             this.button_refresh.Text = "Refresh";
             this.button_refresh.UseVisualStyleBackColor = true;
-            this.button_refresh.Click += new System.EventHandler(this.button_refresh_Click);
-            // 
-            // group_data_lines
-            // 
-            this.group_data_lines.Controls.Add(this.dataGridView2);
-            this.group_data_lines.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.group_data_lines.Location = new System.Drawing.Point(634, 3);
-            this.group_data_lines.Name = "group_data_lines";
-            this.group_data_lines.Size = new System.Drawing.Size(625, 897);
-            this.group_data_lines.TabIndex = 14;
-            this.group_data_lines.TabStop = false;
-            this.group_data_lines.Text = "Word Usages in Lines";
-            // 
-            // dataGridView2
-            // 
-            this.dataGridView2.AllowUserToAddRows = false;
-            this.dataGridView2.AllowUserToDeleteRows = false;
-            this.dataGridView2.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dataGridView2.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.dataGridView2.Location = new System.Drawing.Point(3, 27);
-            this.dataGridView2.Name = "dataGridView2";
-            this.dataGridView2.ReadOnly = true;
-            this.dataGridView2.RowHeadersWidth = 62;
-            this.dataGridView2.RowTemplate.Height = 33;
-            this.dataGridView2.Size = new System.Drawing.Size(619, 867);
-            this.dataGridView2.TabIndex = 12;
+            this.button_refresh.Click += new System.EventHandler(this.Button_refresh_Click);
             // 
             // WordChecker
             // 
@@ -315,6 +317,7 @@
             this.Controls.Add(this.Group_Paths);
             this.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.Name = "WordChecker";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "WordChecker";
             this.Group_Paths.ResumeLayout(false);
             this.tableLayoutPanel2.ResumeLayout(false);
@@ -325,10 +328,10 @@
             this.tableLayoutPanel_filters.ResumeLayout(false);
             this.tableLayoutPanel_filters.PerformLayout();
             this.tableLayoutPanel_data_parent.ResumeLayout(false);
-            this.group_actions.ResumeLayout(false);
-            this.tableLayoutPanel_actions.ResumeLayout(false);
             this.group_data_lines.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dataGridView2)).EndInit();
+            this.group_actions.ResumeLayout(false);
+            this.tableLayoutPanel_actions.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
