@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Text;
 
 namespace Project_Lykos
 {
@@ -7,7 +8,8 @@ namespace Project_Lykos
     public class LykosController
     {
         // Indexer
-        private readonly IndexControl _indexControl = new();
+        private readonly IndexControl sourceIndexer = new("*.wav");
+        private readonly IndexControl outputIndexer = new("*.lip");
         
         // Dynamic Paths
         public DynamicPath DynPathSource = new();
@@ -16,6 +18,7 @@ namespace Project_Lykos
 
         // Configs
         public string Delimiter { get; set; } = "";
+        public bool SkipExisting { get; set; } = true;
 
         // Datasets
         private DataTable? CsvData { get; set; }
@@ -54,27 +57,16 @@ namespace Project_Lykos
             {
                 throw new Exception("Invalid folder structure. Target cannot have more than 1 layer of subfolders.");
             }
-            // Set the Filepath_Source
             DynPathSource.SetPath(filepath);
-            // Calls a task to index the files
-            _indexControl.BackgroundIndexFiles(filepath);
+            sourceIndexer.BackgroundIndexFiles(filepath);
         }
         
         // Set the Filepath_Output, if valid path, else return false
-        public bool SetFilepath_Output(string filepath)
+        public void SetFilepath_Output(string filepath)
         {
-            // Check if the filepath is valid
-            if (System.IO.Directory.Exists(filepath))
-            {
-                // Set the Filepath_Output
-                DynPathOutput.SetPath(filepath);
-                return true;
-            }
-            else
-            {
-                // Return false
-                return false;
-            }
+            if (!System.IO.Directory.Exists(filepath)) throw new Exception("File not found.");
+            DynPathOutput.SetPath(filepath);
+            outputIndexer.BackgroundIndexFiles(filepath);
         }
         
         /*
@@ -99,7 +91,7 @@ namespace Project_Lykos
         /// <exception cref="NullReferenceException"></exception>
         /// <exception cref="TaskCanceledException"></exception>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public List<string> IndexSource(IProgress<(int current, int total)> progress)
+        public string IndexSource(IProgress<(int current, int total)> progress)
         {
             if (!DynPathSource.Exists()) throw new Exception("Source Path not loaded.");
             // if (!DynPathOutput.Exists()) throw new Exception("Output Path not loaded.");
@@ -122,7 +114,8 @@ namespace Project_Lykos
                 var relativePath = row["relative_path"].ToString();
                 var file = Path.GetFileName(relativePath); 
                 var text = row["text"].ToString();
-                if (text == null || file == null) throw new Exception("CSV Path column invalid on row: " + row.Table.Rows.IndexOf(row));
+                if (relativePath == null || text == null || file == null) 
+                    throw new Exception("CSV Path column invalid on row: " + row.Table.Rows.IndexOf(row));
 
                 // Detect if the path is already in the dictionary
                 if (csvDict.ContainsKey(relativePath))
@@ -136,18 +129,18 @@ namespace Project_Lykos
                         csvDict[relativePath] = currentText;
                         continue;
                     }
-                    else if (userOverrideOn && lastUserOverrideFile == file && lastUserChoiceUseOld)
+                    if (userOverrideOn && lastUserOverrideFile == file && lastUserChoiceUseOld)
                     {
                         // For last user chose to use the new text, use the new text
                         csvDict[relativePath] = text;
                         continue;
                     }
-                    else if (userOverrideOn && lastUserOverrideFile != file)
+                    if (userOverrideOn && lastUserOverrideFile != file)
                     {
                         userOverrideOn = false;
                     }
                     // Grab the audio path by looking for a match in relative path
-                    var pathAudio = _indexControl.IndexData.Rows.Find(relativePath)?["FullPath"].ToString();
+                    var pathAudio = sourceIndexer.IndexData.Rows.Find(relativePath)?["FullPath"].ToString();
                     // Create a list with the current value and new value to be added
                     var list = new List<string> { text, currentText };
                     var dialog = new IndexCollisionDialog(pathAudio, list);
@@ -176,16 +169,55 @@ namespace Project_Lykos
             
             // Record reportable events
             List<string> filesWithoutTextMatch = new();
+            var filesSkipped = 0;
 
             var currentRow = 0;
-            var maxRow = _indexControl.IndexData.Rows.Count;
-            var lastReportTime = DateTime.UtcNow;
+            var maxRow = sourceIndexer.IndexData.Rows.Count;
+            var lastReportTime = DateTime.Now;
+            
+            
+            // If skip existing is on, convert the target index relative path to a list of strings
+            List<string> filesExisting = new();
+            if (SkipExisting)
+            {
+                // Convert to list using linq
+                var list = outputIndexer.IndexData.AsEnumerable().Select(row => row[0].ToString()).ToList();
+                if (list.Count > 0)
+                {
+                    // Confirm that no element is null
+                    if (list.Any(x => x == null)) throw new Exception("Directory contains null values. Try again without skip existing option.");
+                    filesExisting = list!;
+                }
+            }
 
             // Loop through the index data
             // Use the dictionary to find the text
             // Create a ProcessTask object and add to the ProcessControl's CurrentTasksBatch list
-            foreach (DataRow row in _indexControl.IndexData.Rows)
+            foreach (DataRow row in sourceIndexer.IndexData.Rows)
             {
+                // For skipping existing
+                if (SkipExisting)
+                {
+                    // Check that filesExisting contains row[0]
+                    var relPath = row[0].ToString();
+                    // Remove extension
+                    var relFolder = Path.GetDirectoryName(relPath);
+                    var fileName = Path.GetFileNameWithoutExtension(relPath) + ".lip";
+                    var joined = Path.Join(relFolder, fileName);
+                    var outputPath = Path.Join(DynPathOutput.Path, joined);
+                    if (File.Exists(outputPath))
+                    {
+                        filesSkipped++;
+                        // Progress Report
+                        currentRow++;
+                        // Report progress if time elapsed more than 95ms
+                        if (DateTime.Now.Subtract(lastReportTime).TotalMilliseconds < 19) continue;
+                        progress.Report((currentRow, maxRow));
+                        lastReportTime = DateTime.Now;
+                        continue;
+                    }
+                }
+                
                 // Get the relative path from the IndexData
                 var relativePath = row[0].ToString();
                 var fullPath = row[1].ToString();
@@ -211,17 +243,16 @@ namespace Project_Lykos
                 // Report progress if time elapsed more than 95ms
                 if (DateTime.Now.Subtract(lastReportTime).TotalMilliseconds < 19) continue;
                 progress.Report((currentRow, maxRow));
-                lastReportTime = DateTime.UtcNow;
+                lastReportTime = DateTime.Now;
             }
             // Get number of files, and number of files with text match, return a list of strings
             var reportNumTasks = CtProcessControl.Count;
             var reportNumFilesWithoutTextMatch = filesWithoutTextMatch.Count;
-            List<string> result = new()
-                {
-                    $"{reportNumTasks} generation tasks created.",
-                    $"{reportNumFilesWithoutTextMatch} files without text match."
-                };
-            return result;
+            StringBuilder result = new();
+            result.AppendLine($"{reportNumTasks} generation tasks created.");
+            result.AppendLine($"{reportNumFilesWithoutTextMatch} files without text match.");
+            result.AppendLine($"{filesSkipped} existing files skipped.");
+            return result.ToString();
         }
 
         // Method to load the CSV file into the DataTable

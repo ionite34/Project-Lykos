@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace Project_Lykos
 {
@@ -7,6 +8,7 @@ namespace Project_Lykos
     public partial class MainWindow : Form
     {
         private readonly LykosController ct = new();
+        private readonly ProcessControl pc;
         private readonly State state;
 
         // Dictionary of buttons and states
@@ -15,18 +17,13 @@ namespace Project_Lykos
         // Cancellation token for the background worker
         private readonly CancellationTokenSource cts1 = new();
         
-        // Timer
-        private System.Windows.Forms.Timer progressTimer = new();
-        
-        public bool Progress1Running { get; set; } = false;
+        // Timers
+        private readonly System.Windows.Forms.Timer progressTimer = new();
+        private TimeEstimate? etcCalc;
 
-        // Background Workers
-        private readonly BackgroundWorker worker = new()
-        {
-            WorkerSupportsCancellation = false,
-            WorkerReportsProgress = true,
-        };
-        
+        public bool Progress1Running { get; set; } = false;
+        private int lastTimeEstimateCounter = 0;
+
         // Tooltip
         private readonly ToolTip _labelTips = new();
 
@@ -56,8 +53,11 @@ namespace Project_Lykos
             state.Buttons.Add(button_start_batch);
             state.Buttons.Add(button_stop_batch);
             
+            // Objects
+            pc = ct.CtProcessControl;
+            
             progressTimer.Tick += Batch_ProgressChanged;
-            progressTimer.Interval = 370;
+            progressTimer.Interval = 50;
         }
         
         private void MainWindow_Load(object sender, EventArgs e)
@@ -131,23 +131,14 @@ namespace Project_Lykos
             if (ofd.ShowDialog(this) != DialogResult.OK) return;
             await ParseCSV(ofd.FileName).ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Starts the index preview process
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
+        
+        // Index button
         private async void button_preview_Click(object sender, EventArgs e)
         {
             await DoIndex();
         }
         
-        /// <summary>
-        /// Starts the batch process
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        /// <exception cref="NotImplementedException"></exception>
+        // Start batch button
         private async void button_start_batch_Click(object sender, EventArgs e)
         {
             await StartBatch().ConfigureAwait(false);
@@ -158,7 +149,7 @@ namespace Project_Lykos
         {
             // First check if indexing is done, if not, call indexing
             // We do this by checking if any tasks are queued
-            if (ct.CtProcessControl.Count == 0)
+            if (pc.Count == 0)
             {
                 // If there are no tasks, we need to index first
                 await DoIndex();
@@ -167,17 +158,18 @@ namespace Project_Lykos
             try
             {
                 await Task.Run(state.FreezeButtons);
-                button_stop_batch.Enabled = true;
-                // Set the progress bar
-                progress_total.Style = ProgressBarStyle.Marquee;
-                label_progress_status1A.Text = @"Starting batch processing...";
-                label_progress_status1A.Visible = true;
-                Progress1Running = true;
-                // ct.CtProcessControl.ProgressChanged += Batch_ProgressChanged;
-                var procNum = combo_multiprocess_count.SelectedIndex + 1;
                 
+                // Enable stop button
+                button_stop_batch.Enabled = true;
+                
+                // ct.CtProcessControl.ProgressChanged += Batch_ProgressChanged;
+                pc.Report += AddListViewItem;
+
+                // Start processing
                 progressTimer.Start();
-                await ct.CtProcessControl.Start(procNum, 200, false, cts1);
+                etcCalc = new TimeEstimate(pc.Count);
+                var procNum = combo_multiprocess_count.SelectedIndex + 1;
+                await pc.Start(procNum, 128, false, cts1);
             }
             catch (TaskCanceledException cancelException)
             {
@@ -190,16 +182,18 @@ namespace Project_Lykos
             finally
             {
                 progressTimer.Stop();
-                Cache.KillProcesses();
-                ResetUIProgress();
+                if (etcCalc != null) etcCalc.TimeInitialized = false;
+                ResetUIProgress(); // Reset the progress bar and labels
+                
+                // Clear temp
+                await TryStopClearTemp();
+                
+                // Show some results via message box
+                MessageBox.Show($@"Total files output: {pc.TotalProcessed}/{pc.TotalFiles}", 
+                    @"Batch processing completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                // Restore buttons
                 await Task.Run(state.RestoreButtons);
-                // Messagebox with average times, if any were recorded
-                if (Cache.ProcessingTimes.Count > 0)
-                {
-                    var avg = Cache.AverageProcessingTime;
-                    var msg = $@"Average processing time: {avg:0.0} ms";
-                    MessageBox.Show(msg, @"Batch processing stopped", MessageBoxButtons.OK, MessageBoxIcon.Information); 
-                }
             }
         }
         
@@ -243,16 +237,125 @@ namespace Project_Lykos
             }
         }
         
-        // Method to set the progress bar to a percentage event
-        private void Batch_ProgressChanged(object sender, EventArgs e)
+        // Do indexing
+        private async Task DoIndex()
         {
-            if (!Progress1Running) return;
-            if (ct.CtProcessControl.processedCount == 0) return;
+            var result = "";
+            try
+            {
+                await Task.Run(state.FreezeButtons);
+                var lb1 = label_progress_status1A;
+                lb1.Text = @"Indexing: ";
+                lb1.Visible = true;
+                label_progress_value1A.Visible = true;
+                var progress = LinkProgressBarInt2L(this, progress_total, label_progress_value1A,
+                    label_progress_status1A, false, true);
+                Progress1Running = true;
+                progress_total.Style = ProgressBarStyle.Marquee; 
+                result = await Task.Run(() => ct.IndexSource(progress));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, @"Error During File Indexing", MessageBoxButtons.OK,
+                    MessageBoxIcon.Exclamation);
+            }
+            finally
+            {
+                await Task.Run(state.RestoreButtons);
+                ResetUIProgress();
+            }
+            MessageBox.Show(result, @"Indexing Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+        
+        // Try to stop the process
+        private async Task TryStopClearTemp()
+        {
+            // Begin Kill process and remove temp files
+            await ct.CtProcessControl.EStop();
+            var confirmKilled = Cache.KillProcesses();
+            if (confirmKilled)
+            {
+                // Try to remove the temp files
+                try
+                {
+                    Cache.Destroy();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($@"Could not remove temp files: {ex.Message}", 
+                        @"Error removing temp files", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            else
+            {
+                // Show error
+                MessageBox.Show(@"Could not stop subprocesses.", 
+                    @"Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+        
+        // Method to add new entry to listview based on report
+        private void AddListViewItem(string report)
+        {
+            if (listView1.Columns.Count == 0)
+            {
+                listView1.Columns.Add("Time", 10, HorizontalAlignment.Left);
+                listView1.Columns.Add("Report", listView1.Width - 10, HorizontalAlignment.Left);
+            }
+            var lvi = new ListViewItem(report);
+            lvi.SubItems.Add(DateTime.Now.ToString(CultureInfo.CurrentCulture));
+            lvi.SubItems.Add(report);
+            listView1.Items.Add(lvi);
+        }
+        
+        
+        // Method to set the progress bar on batch updates
+        private void Batch_ProgressChanged(object? sender, EventArgs e)
+        {
             progress_total.BeginInvoke((MethodInvoker)delegate ()
             {
-                int progress = ct.CtProcessControl.processedCount;
+                // Check if process count is 0, show marquee
+                if (pc.ProcessedCount == 0)
+                {
+                    if (progress_total.Style == ProgressBarStyle.Marquee) return;
+                    progress_total.Style = ProgressBarStyle.Marquee;
+                    label_progress_status1A.Text = @"Starting batch...";
+                    progress_total.MarqueeAnimationSpeed = 25;
+                    return;
+                }
+                
+                // Create etcCalc if null
+                etcCalc ??= new TimeEstimate(pc.TotalFiles);
+                // If this is the first update, set the etc timer start time
+                if (pc.ProcessedCount > 0 && !etcCalc.TimeInitialized)
+                {
+                    etcCalc.SetStartTime(DateTime.Now);
+                }
+                
+                // Calculate estimated time remaining every 10 cycles
+                lastTimeEstimateCounter++;
+                if (lastTimeEstimateCounter > 10)
+                {
+                    var estComplete = etcCalc.GetEtc(pc.TotalProcessed);
+                    var estDuration = estComplete.Subtract(DateTime.Now);
+                    var strDuration = estDuration.ToString(@"hh\:mm");
+                    // Get processing rate
+                    var procRate = etcCalc.GetItemsPerSecond(pc.TotalProcessed);
+                    // Convert procRate to 2 significant figures
+                    var strProcRate = Math.Round(procRate, 2).ToString(CultureInfo.CurrentCulture);
+                    // Update the label
+                    label_progress_status2A.Text = $@"Time remaining: {strDuration}";
+                    label_progress_value2A.Text = $@"Process rate: {strProcRate} items/sec";
+                    label_progress_status2A.Visible = true;
+                    label_progress_value2A.Visible = true;
+                    // Reset counter
+                    lastTimeEstimateCounter = 0;
+                }
+
+                int progress = ct.CtProcessControl.ProcessedCount;
                 int batchesDone = ct.CtProcessControl.CurrentBatch;
                 label_progress_status1A.Text = @"Current batch progress: ";
+                label_progress_status1A.Visible = true;
                 label_progress_value1A.Text = $@"{progress}/{ct.CtProcessControl.BatchSize}";
                 label_progress_value1A.Visible = true;
                 progress_total.Style = ProgressBarStyle.Continuous;
@@ -279,6 +382,9 @@ namespace Project_Lykos
                 progress_total.Value = 0;
                 progress_total.Maximum = 100;
                 progress_total.Style = ProgressBarStyle.Continuous;
+                progress_batch.Value = 0;
+                progress_batch.Maximum = 100;
+                progress_batch.Style = ProgressBarStyle.Continuous;
                 label_progress_value1A.Text = "";
                 label_progress_value1A.Visible = false;
                 label_progress_status1A.Text = "";
@@ -287,6 +393,10 @@ namespace Project_Lykos
                 label_progress_value2A.Visible = false;
                 label_progress_status2A.Text = "";
                 label_progress_value2A.Visible = false;
+                label_batch_status.Text = "";
+                label_batch_value.Text = "";
+                label_batch_status.Visible = false;
+                label_batch_value.Visible = false;
             };
             if (this.InvokeRequired)
                 this.BeginInvoke(task);
@@ -319,39 +429,6 @@ namespace Project_Lykos
         private void Combo_Any_Enter_Leave(object sender, EventArgs e)
         {
             UpdateComboFormats();
-        }
-
-        private async Task DoIndex()
-        {
-            List<string> result = new();
-            try
-            {
-                //await Task.Run(() => state.FreezeButtons());
-                await Task.Run(state.FreezeButtons);
-                var lb1 = label_progress_status1A;
-                lb1.Text = @"Indexing: ";
-                lb1.Visible = true;
-                var progress = LinkProgressBarInt2L(this, progress_total, label_progress_value1A,
-                    label_progress_status1A, true);
-                Progress1Running = true;
-                result = await Task.Run(() => ct.IndexSource(progress));
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, @"Error During File Indexing", MessageBoxButtons.OK,
-                    MessageBoxIcon.Exclamation);
-            }
-            finally
-            {
-                await Task.Run(state.RestoreButtons);
-                // await Task.Run(() => state.RestoreButtons());
-                ResetUIProgress();
-            }
-            if (result.Count < 2) return;
-            var displayResult = result.Aggregate((a, b) => a + Environment.NewLine + b);
-            // Asynchronously populate the ListView at this point
-            MessageBox.Show(displayResult, @"Indexing Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            // await Task.Run(PopulateWorkersList);
         }
 
         private void PopulateWorkersList()
@@ -425,6 +502,13 @@ namespace Project_Lykos
                 label_progress_status1A.Visible = false;
                 progress_total.Style = ProgressBarStyle.Continuous;
             });
+        }
+
+        private void button_additional_Click(object sender, EventArgs e)
+        {
+            // Open Dialog of AdditionalOptions
+            AdditionalOptions form = new();
+            form.ShowDialog();
         }
     }
 }

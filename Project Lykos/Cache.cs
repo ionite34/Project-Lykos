@@ -15,7 +15,7 @@ namespace Project_Lykos
         public static readonly string TempDir = Path.GetTempPath();
         public static string FullTempDir => Path.Join(TempDir, "Lykos_Temp");
         public static string WrapDir => Path.Join(FullTempDir, "Wrapper");
-        public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FonixData.cdf");
+        public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FXData.cdf");
         public static string WrapPath => Path.Join(WrapDir, "FXExtended.exe");
         public static string AudioDir => Path.Join(FullTempDir, "AudioSource");
         public static string LogDir => Path.Join(Directory.GetCurrentDirectory(), "Logs");
@@ -79,25 +79,24 @@ namespace Project_Lykos
         {
             var task = Task.Run(() =>
             {
+                // Check if any 'FXExtended.exe' processes are running
+                var processes = Process.GetProcessesByName("FXExtended");
+                if (processes.Length == 0) return true;
+
                 // If any FaceFXWrapper are running, shut them down
                 foreach (var process in Process.GetProcessesByName("FXExtended"))
                 {
                     process.Kill();
                 }
+                // Start a stopwatch for timeout
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
                 // Wait until all FaceFXWrapper are closed
                 while (Process.GetProcessesByName("FXExtended").Length > 0)
                 {
+                    if (stopwatch.ElapsedMilliseconds > 5000) return false;
                     Task.Delay(50).Wait();
                 }
-                try
-                {
-                    Destroy();
-                }
-                catch (Exception e)
-                {
-                    return false;
-                }
-
                 return true;
             });
             return task.Result;

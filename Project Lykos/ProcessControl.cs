@@ -1,92 +1,77 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using CliWrap;
-using NAudio.Wave;
-
-namespace Project_Lykos
+﻿namespace Project_Lykos
 {
     public class ProcessControl : Queue<ProcessTask>
     {
         // Events
-        public event Action<int,int> ProgressChanged;
-        
+        public event Action<int, int>? ProgressChanged;
+        public event Action<string>? Report;
+
         // Settings
-        public ResamplingMode ResampleMode { get; set; }
+        public bool UseNativeResampler { get; set; } = false;
         public int MaxRetryCount { get; set; } = 1; // Max number of retries for a failed task, 0 = no retry
-        
+
         // Batch Indicators
-        public int BatchSize { get; set; }
-        public int CurrentBatch { get; set; }
-        public int TotalBatches { get; set; }
-        
+        public int BatchSize { get; private set; }
+        public int CurrentBatch { get; private set; }
+        public int TotalBatches { get; private set; }
+        public int TotalFiles { get; private set; }
+
         // Inner Batch Indicators
         private int errorCount;
-        private int timeOutCount;
-        public int processedCount;
+        public int ProcessedCount;
+        public int TotalProcessed;
         private int lastReportedCount;
-        
-        // List of workers
-        public List<SubProcessing> Workers { get; }= new List<SubProcessing>();
-        
-        // Resampling Mode
-        public enum ResamplingMode
-        {
-            None = 0,
-            Native = 1,
-            Standard = 2,
-            Filtered = 3
-        }
 
-        private void OnProgressChanged(int progressCount)     // Progress Changed Event
+        // List of workers
+        private List<SubProcessingAdv> Workers { get; } = new List<SubProcessingAdv>();
+
+        private void OnProgressChanged(int progressCount) // Progress Changed Event
         {
             ProgressChanged?.Invoke(progressCount, CurrentBatch);
         }
+        
+        private void SendReport(string report) // Report Event
+        {
+            Report?.Invoke(report);
+        }
 
- 
         private void CheckProgress()
         {
-            if (lastReportedCount == processedCount) return;
-            OnProgressChanged(processedCount);
-            lastReportedCount = processedCount;
+            if (lastReportedCount == ProcessedCount) return;
+            OnProgressChanged(ProcessedCount);
+            lastReportedCount = ProcessedCount;
         }
 
         public Task EStop()
         {
+            if (Workers.Count == 0) return Task.CompletedTask;
             return Task.Run(() =>
-            {   
+            {
                 // If any FaceFXWrapper are running, shut them down
                 foreach (var worker in Workers)
                 {
                     worker.StopAll();
                 }
-                // Wait until all FaceFXWrapper are closed by checking worker's IsRunning status
-                while (Workers.Any(worker => worker.IsRunning()))
-                {
-                    Task.Delay(100).Wait();
-                }
             });
         }
-        
+
         // Run Process
         public async Task Start(int processCount, int batchSize, bool useNativeResampling, CancellationTokenSource cts)
         {
             Cache.Setup();
             BatchSize = batchSize;
-            TotalBatches = (int)Math.Ceiling((double)this.Count / batchSize);
-            var options = new ParallelOptions()
-            {
-                MaxDegreeOfParallelism = processCount,
-                CancellationToken = cts.Token
-            };
+            TotalBatches = (int) Math.Ceiling((double) this.Count / batchSize);
+            TotalFiles = Count;
             while (this.Count > 0)
             {
+                if (cts.IsCancellationRequested) throw new OperationCanceledException();
                 CurrentBatch++;
+
+                // Reset counters
+                errorCount = 0;
+                ProcessedCount = 0;
+                lastReportedCount = 0;
+
                 // Batch size is either the remaining tasks or the max batch size
                 var currentBatchSize = Math.Min(batchSize, this.Count);
                 // Build the current batch by removing the first batchSize tasks from the queue
@@ -98,6 +83,11 @@ namespace Project_Lykos
                     try
                     {
                         // Iterate through the current batch and convert audio
+                        var options = new ParallelOptions()
+                        {
+                            MaxDegreeOfParallelism = processCount,
+                            CancellationToken = cts.Token
+                        };
                         Parallel.ForEach(currentBatch, options, processTask =>
                         {
                             var sourcePath = processTask.WavSourcePath;
@@ -114,10 +104,17 @@ namespace Project_Lykos
                         throw new Exception("Error while converting audio: " + ex.Message);
                     }
                 }
-                
+
                 // Start the batch
                 try
                 {
+                    // Start workers if not already running
+                    if (!AllWorkersRunning())
+                    {
+                        await Task.Run(() => StartWorkers(cts, processCount));
+                    }
+
+                    // Do process batch
                     await ProcessBatch(batchQueue, processCount, cts, useNativeResampling);
                 }
                 finally
@@ -131,15 +128,22 @@ namespace Project_Lykos
                 }
             }
         }
-        
-        // New Process Batch
-        private async Task ProcessBatch(Queue<ProcessTask> batch, int processCount, CancellationTokenSource cts, bool useNativeResampling)
+
+        // Returns true if all workers are running
+        public bool AllWorkersRunning()
         {
-            errorCount = 0;
-            timeOutCount = 0;
-            processedCount = 0;
-            lastReportedCount = 0;
-            // Register to kill all subprocesses if the user cancels
+            if (Workers.Count == 0)
+            {
+                return false;
+            }
+
+            return Workers.All(worker => worker.IsRunning());
+        }
+
+        // Start all workers
+        private void StartWorkers(CancellationTokenSource cts, int processCount)
+        {
+            // Register to stop all subprocesses if the user cancels
             cts.Token.Register(() =>
             {
                 foreach (var subProcess in Workers)
@@ -147,128 +151,94 @@ namespace Project_Lykos
                     subProcess.StopAll();
                 }
             });
-            
+
             // Make new workers equal to the process count
             for (var i = 0; i < processCount; i++)
             {
-                Workers.Add(new SubProcessing(this, i));
+                var affinity = i;
+                // Disable affinity if only 1 Worker
+                if (Workers.Count == 1) affinity = 0;
+                Workers.Add(new SubProcessingAdv(affinity, UseNativeResampler));
             }
 
             // Start subprocesses
-            var tasks = new List<Task>();
-            foreach (var worker in Workers)
+            var tasks = new List<Task<int>>();
+            foreach (var subProcess in Workers)
             {
-                var startTask = Task.Run(() => worker.StartSubProcess());
-                tasks.Add(startTask);
+                tasks.Add(Task.Run(() => subProcess.StartSubProcess()));
             }
-            await Task.WhenAll(tasks);
-            var results = tasks.Select(task => ((Task<bool>) task).Result).ToList();
+            // Run 
+            Task.WhenAll(tasks);
+            // Check results
+            var results = tasks.Select(task => task.Result).ToList();
+            
             // If any of the subprocesses failed, throw an exception
-            if (results.Any(result => !result))
+            if (results.Any(result => result != 1))
             {
-                cts.Cancel();
                 throw new Exception("Error while starting subprocesses.");
             }
-            
-            // Pause for a second to let the subprocesses start
-            // await Task.Delay(1000);
-            
-            // Clear tasks
-            tasks.Clear();
+        }
+
+        // New Process Batch
+        private async Task ProcessBatch(Queue<ProcessTask> batch, int processCount, CancellationTokenSource cts,
+            bool useNativeResampling)
+        {
+            var tasks = new List<Task>();
             // Add new tasks
             foreach (var worker in Workers)
-                tasks.Add(Task.Run(() => RunWorker(batch, worker, cts)));
-
+            {
+                var factoryTask = Task.Factory.StartNew(() =>
+                {
+                    RunWorker(batch, worker, cts);
+                }, TaskCreationOptions.LongRunning);
+                tasks.Add(factoryTask);
+            }
             await Task.WhenAll(tasks);
         }
 
-        private void RunWorker(Queue<ProcessTask> batch, SubProcessing worker, CancellationTokenSource cts)
+        private void RunWorker(Queue<ProcessTask> batch, SubProcessingAdv worker, CancellationTokenSource cts)
         {
             do
             {
+                // Break if the user cancels
                 if (cts.IsCancellationRequested) break;
+                
                 // Dequeue a task and get the command
-                if (batch.TryDequeue(out var processTask))
+                if (!batch.TryDequeue(out var processTask)) continue;
+                var command = processTask.GetCommand();
+                
+                // Check if the output lip folder exists, if not create it
+                if (!Directory.Exists(Path.GetDirectoryName(processTask.LipOutputPath)))
                 {
-                    var command = processTask.GetCommand();
-                    // Check if the output lip folder exists, if not create it
-                    if (!Directory.Exists(Path.GetDirectoryName(processTask.LipOutputPath)))
-                    {
-                        var target = Path.GetDirectoryName(processTask.LipOutputPath)!;
-                        Directory.CreateDirectory(target);
-                    }
+                    var target = Path.GetDirectoryName(processTask.LipOutputPath)!;
+                    Directory.CreateDirectory(target);
+                }
+                
+                // Run the command
+                var result = worker.DoTask(command);
 
-                    // Start timer
-                    // var timer = new System.Diagnostics.Stopwatch();
-                    // timer.Start();
-                    // Run the command
-                    var sw1 = System.Diagnostics.Stopwatch.StartNew();
-                    var result = worker.DoTask(command);
-                    sw1.Stop();
-                    System.Diagnostics.Debug.WriteLine($@"P [{worker.processNumber}], time: {sw1.ElapsedMilliseconds}ms");
-                    // If failed, retry up to 1 time
-                    if (!result)
+                // Check result
+                if (result != 1) // If failed
+                {
+                    // If failed, retry up to defined limit
+                    if (processTask.RetryCount < MaxRetryCount)
                     {
-                        // If failed, retry up to 1 time
-                        if (processTask.RetryCount < MaxRetryCount)
-                        {
-                            // For retry, put it back in the queue
-                            batch.Enqueue(processTask);
-                            processTask.RetryCount++;
-                        }
-                        else
-                        {
-                            // Increment process and error count
-                            Interlocked.Increment(ref errorCount);
-                            Interlocked.Increment(ref processedCount);
-                        }
+                        batch.Enqueue(processTask);
+                        processTask.RetryCount++;
                     }
                     else
                     {
-                        // Write time to cache
-                        // timer.Stop();
-                        // Cache.ProcessingTimes.Add(timer.ElapsedMilliseconds);
-                        // Increment processed count
-                        Interlocked.Increment(ref processedCount);
+                        Interlocked.Increment(ref errorCount);
+                        Interlocked.Increment(ref ProcessedCount);
+                        Interlocked.Increment(ref TotalProcessed);
                     }
+                }
+                else // If successful
+                {
+                    Interlocked.Increment(ref ProcessedCount);
+                    Interlocked.Increment(ref TotalProcessed);
                 }
             } while (batch.Count > 0);
         }
-        
-        // Process single batch
-        private void ProcessBatch_Legacy(IEnumerable<ProcessTask> batch, int processCount, CancellationTokenSource cts, bool useNativeResampling)
-        {
-            errorCount = 0;
-            timeOutCount = 0;
-            processedCount = 0;
-            lastReportedCount = 0;
-
-            var options = new ParallelOptions()
-            {
-                MaxDegreeOfParallelism = processCount,
-                CancellationToken = cts.Token
-            };
-            
-            Parallel.ForEach(batch, options, task =>
-            {
-                // Abort if process count is between 0 and 100 and error count exceeds 25
-                var c1 = processedCount < 100 && errorCount > 25;
-                // Also abort if process count more than 100 but error exceeds 30%
-                var c2 = processedCount > 100 && errorCount > (processedCount / 4);
-                if (c1 || c2)
-                {
-                    cts.Cancel();
-                    throw new Exception("Too many errors, aborting");
-                }
-                // If using native resampling
-                task.UseNativeResampler = useNativeResampling;
-                var worker = task.ProcessAsync(cts.Token, TimeSpan.FromSeconds(15));
-                var result = worker.Result;
-                if (result is 1 or 2) Interlocked.Increment(ref this.errorCount); // Error includes timeout
-                if (result is 2) Interlocked.Increment(ref this.timeOutCount); // Timeout count
-                Interlocked.Increment(ref this.processedCount); // Total processed count
-                CheckProgress(); // Check progress
-            });
-        }
-    }   
+    }
 }
