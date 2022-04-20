@@ -3,9 +3,11 @@ namespace Project_Lykos;
 public class TimeEstimate
 {
     // Start time of the estimate
-    private readonly DateTime startTime;
+    private DateTime startTime;
     // Upper index of process batch (not count)
     private readonly int indexMax;
+    // Flag to indicate time initialized
+    public bool TimeInitialized { get; set; } = false;
 
     /// <summary>
     /// 
@@ -15,6 +17,12 @@ public class TimeEstimate
     {
         indexMax = maxCount + 1;
         startTime = DateTime.Now;
+    }
+    
+    public void SetStartTime(DateTime time)
+    {
+        startTime = time;
+        TimeInitialized = true;
     }
 
     /// <summary>
