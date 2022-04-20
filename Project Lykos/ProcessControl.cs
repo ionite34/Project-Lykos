@@ -1,15 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using CliWrap;
-using NAudio.Wave;
-
-namespace Project_Lykos
+﻿namespace Project_Lykos
 {
     public class ProcessControl : Queue<ProcessTask>
     {
