@@ -15,7 +15,7 @@ namespace Project_Lykos
         public static readonly string TempDir = Path.GetTempPath();
         public static string FullTempDir => Path.Join(TempDir, "Lykos_Temp");
         public static string WrapDir => Path.Join(FullTempDir, "Wrapper");
-        public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FonixData.cdf");
+        public static string DataPath => Path.Join(FullTempDir, "Wrapper", "FXData.cdf");
         public static string WrapPath => Path.Join(WrapDir, "FXExtended.exe");
         public static string AudioDir => Path.Join(FullTempDir, "AudioSource");
         public static string LogDir => Path.Join(Directory.GetCurrentDirectory(), "Logs");
