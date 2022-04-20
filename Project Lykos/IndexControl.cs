@@ -8,16 +8,15 @@ using System.Threading.Tasks;
 namespace Project_Lykos
 {
     // Most file indexing operations are performed here.
-    internal class IndexControl
+    public class IndexControl
     {
-        // Datatable holding index data.
         public DataTable IndexData { get; set; }
-
-        // State indicator
         public bool Indexed { get; private set; }
+        private readonly string pattern;
 
-        public IndexControl()
+        public IndexControl(string searchPattern)
         {
+            pattern = searchPattern;
             IndexData = new DataTable();
             Indexed = false;
         }
@@ -25,9 +24,15 @@ namespace Project_Lykos
         // Method that indexes files and sets the datatable.
         public void BackgroundIndexFiles(string directory)
         {
-            // Avoid blocking the caller and return immediately.
-            // await Task.Yield();
-            const string searchPattern = "*.wav";
+            IndexData = IndexToDataTable(directory, pattern);
+            Indexed = true;
+        }
+
+        // Indexes a directory to a datatable.
+        // Column 1 -> Relative path to file from the selected directory
+        // Column 2 -> Full path of file
+        private static DataTable IndexToDataTable(string directory, string searchPattern)
+        {
             const SearchOption searchOption = SearchOption.AllDirectories;
             DataTable dt = new();
             dt.Columns.Add("RelativePath", typeof(string));
@@ -45,24 +50,9 @@ namespace Project_Lykos
                 // Add row to table.
                 dt.Rows.Add(row);
             }
-            IndexData = dt;
-            Indexed = true;
+            return dt;
         }
         
-        // Method that indexes a directory to the IndexControl
-        // Column 1 -> Full path of file
-        // Column 2 -> Relative path to file from the selected directory
-        public void Index(string indexTargetDirectory)
-        {
-            const string searchPattern = "*.wav";
-            const SearchOption searchOption = SearchOption.AllDirectories;
-            
-            foreach (var file in Directory.EnumerateFiles(indexTargetDirectory, searchPattern, searchOption))
-            {
-
-            }
-        }
-
         // Method that checks to ensure the provided directory is at most 1 layer deep.
         // Meaning that it can contain subfolders, but not sub-subfolders.
         // We will scan the target directory recursively 
@@ -75,43 +65,6 @@ namespace Project_Lykos
 
             // Return false if any subdirectories are found within the subdirectories.
             return directories.All(dir => dir.GetDirectories().Length <= 0);
-        }
-
-        // Method that indexes a directory and returns a DataTable
-        // Column 1 -> Full path of file
-        // Column 2 -> Relative path to file from the selected directory
-        public static DataTable IndexToDataTable(string path)
-        {
-            // Avoid blocking the caller for the initial enumerate call.
-            // await Task.Yield();
-            var searchPattern = "*.wav";
-            var searchOption = SearchOption.AllDirectories;
-
-            DataTable dt = new();
-            dt.Columns.Add("FullPath", typeof(string));
-            dt.Columns.Add("RelativePath", typeof(string));
-            foreach (var file in Directory.EnumerateFiles(path, searchPattern, searchOption))
-            {
-                var row = dt.NewRow();
-                row[0] = file;
-                var fileName = Path.GetFileName(file);
-                var originalDirectory = Path.GetFileName(Path.GetDirectoryName(file));
-                var relativePath = Path.Join(originalDirectory, fileName);
-                row[1] = relativePath;
-                dt.Rows.Add(row);
-            }
-            return dt;
-        }
-
-        private static async Task ForEachFileAsync(string path, string searchPattern, SearchOption searchOption, Func<string, Task> doAsync)
-        {
-            // Avoid blocking the caller for the initial enumerate call.
-            await Task.Yield();
-
-            foreach (var file in Directory.EnumerateFiles(path, searchPattern, searchOption))
-            {
-                await doAsync(file);
-            }
         }
     }
 }
