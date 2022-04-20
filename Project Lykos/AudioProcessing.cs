@@ -4,10 +4,8 @@ using NAudio.Wave.SampleProviders;
 
 namespace Project_Lykos;
 
-public class AudioProcessing
+public static class AudioProcessing
 {
-
-    //  Use the NAudio to convert 
     public static void Resample(string inFile, string outFile, int sampleRate, int channels)
     {
         // Check if the subfolder the outFile is in exists, if not create it
@@ -20,5 +18,7 @@ public class AudioProcessing
         using var resampler = new MediaFoundationResampler(reader, outFormat);
         resampler.ResamplerQuality = 60;
         WaveFileWriter.CreateWaveFile(outFile, resampler);
+        reader.Dispose();
+        resampler.Dispose();
     }
 }
