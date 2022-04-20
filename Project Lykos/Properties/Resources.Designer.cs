@@ -69,5 +69,15 @@ namespace Project_Lykos.Properties {
                 return ((byte[])(obj));
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Byte[].
+        /// </summary>
+        internal static byte[] xWMAEncode {
+            get {
+                object obj = ResourceManager.GetObject("xWMAEncode", resourceCulture);
+                return ((byte[])(obj));
+            }
+        }
     }
 }
