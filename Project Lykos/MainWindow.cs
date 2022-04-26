@@ -15,7 +15,7 @@ namespace Project_Lykos
         private readonly Dictionary<Control, bool> buttonStates = new();
         
         // Cancellation token for the background worker
-        private readonly CancellationTokenSource cts1 = new();
+        private CancellationTokenSource cts1 = new();
         
         // Timers
         private readonly System.Windows.Forms.Timer progressTimer = new();
@@ -157,6 +157,9 @@ namespace Project_Lykos
             // Now we can start the batch
             try
             {
+                // First, create a new cancellation token source
+                cts1 = new CancellationTokenSource();
+                
                 await Task.Run(state.FreezeButtons);
                 
                 // Enable stop button
@@ -170,6 +173,25 @@ namespace Project_Lykos
                 etcCalc = new TimeEstimate(pc.Count);
                 var procNum = combo_multiprocess_count.SelectedIndex + 1;
                 await pc.Start(procNum, 128, false, cts1);
+                
+                // If pc count is not 0, run until pc count is 0
+                while (true)
+                {
+                    // Reset Index
+                    var sourcePath = ct.DynPathSource.Path;
+                    var targetPath = ct.DynPathOutput.Path;
+                    await Task.Run(() => ct.SetFilepath_Source(sourcePath));
+                    await Task.Run(() => ct.SetFilepath_Output(targetPath));
+                    // Run index again
+                    await DoIndex(true);
+                    // Check if pc count is 0
+                    if (pc.Count == 0) break;
+                    // If not, run again
+                    await pc.Start(procNum, 128, false, cts1);
+                    // Wait 100ms
+                    await Task.Delay(100);
+                }
+                
             }
             catch (TaskCanceledException cancelException)
             {
@@ -238,7 +260,7 @@ namespace Project_Lykos
         }
         
         // Do indexing
-        private async Task DoIndex()
+        private async Task DoIndex(bool quiet = false)
         {
             var result = "";
             try
@@ -264,6 +286,7 @@ namespace Project_Lykos
                 await Task.Run(state.RestoreButtons);
                 ResetUIProgress();
             }
+            if (quiet) return;
             MessageBox.Show(result, @"Indexing Completed", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         
@@ -297,15 +320,26 @@ namespace Project_Lykos
         // Method to add new entry to listview based on report
         private void AddListViewItem(string report)
         {
-            if (listView1.Columns.Count == 0)
+            listView1.BeginInvoke((MethodInvoker) delegate()
             {
-                listView1.Columns.Add("Time", 10, HorizontalAlignment.Left);
-                listView1.Columns.Add("Report", listView1.Width - 10, HorizontalAlignment.Left);
-            }
-            var lvi = new ListViewItem(report);
-            lvi.SubItems.Add(DateTime.Now.ToString(CultureInfo.CurrentCulture));
-            lvi.SubItems.Add(report);
-            listView1.Items.Add(lvi);
+                if (listView1.Columns.Count == 0)
+                {
+                    listView1.Columns.Insert(0, "Time");
+                    listView1.Columns.Insert(1, "Report");
+                    var totalWidth = listView1.Width;
+                    listView1.Columns[0].Width = (int) (totalWidth * 0.2);
+                    listView1.Columns[1].Width = (int) (totalWidth * 0.8);
+                    // Set auto resize
+                    listView1.Columns[0].AutoResize(ColumnHeaderAutoResizeStyle.None);
+                    listView1.Columns[1].AutoResize(ColumnHeaderAutoResizeStyle.None);
+                }
+                var lvi = new ListViewItem(report);
+                var now = DateTime.Now;
+                lvi.SubItems.Add(report);
+                lvi.SubItems.Add($"{now:HH:mm:ss}");
+                listView1.Items.Add(lvi);
+                listView1.EnsureVisible(listView1.Items.Count - 1);
+            });
         }
         
         

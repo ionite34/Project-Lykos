@@ -31,6 +31,7 @@
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.button_resampler = new System.Windows.Forms.Button();
             this.button_settings = new System.Windows.Forms.Button();
+            this.button_wordchecker = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -42,7 +43,8 @@
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel1.Controls.Add(this.button_resampler, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.button_settings, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.button_settings, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(this.button_wordchecker, 0, 1);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(12, 12);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 3;
@@ -66,12 +68,23 @@
             // button_settings
             // 
             this.button_settings.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.button_settings.Location = new System.Drawing.Point(3, 66);
+            this.button_settings.Location = new System.Drawing.Point(3, 129);
             this.button_settings.Name = "button_settings";
             this.button_settings.Size = new System.Drawing.Size(234, 57);
             this.button_settings.TabIndex = 1;
             this.button_settings.Text = "Advanced Settings";
             this.button_settings.UseVisualStyleBackColor = true;
+            // 
+            // button_wordchecker
+            // 
+            this.button_wordchecker.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.button_wordchecker.Location = new System.Drawing.Point(3, 66);
+            this.button_wordchecker.Name = "button_wordchecker";
+            this.button_wordchecker.Size = new System.Drawing.Size(234, 57);
+            this.button_wordchecker.TabIndex = 2;
+            this.button_wordchecker.Text = "Word Checker Tool";
+            this.button_wordchecker.UseVisualStyleBackColor = true;
+            this.button_wordchecker.Click += new System.EventHandler(this.button_wordchecker_Click);
             // 
             // AdditionalOptions
             // 
@@ -96,5 +109,6 @@
         private TableLayoutPanel tableLayoutPanel1;
         private Button button_resampler;
         private Button button_settings;
+        private Button button_wordchecker;
     }
 }

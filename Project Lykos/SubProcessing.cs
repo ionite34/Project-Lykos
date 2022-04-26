@@ -92,7 +92,7 @@ public class SubProcessing
     /// <summary>
     /// Starts the subprocess and listens to stdIn
     /// </summary>
-    public bool StartSubProcess()
+    public int StartSubProcess()
     {
         try
         {
@@ -104,7 +104,7 @@ public class SubProcessing
                 In = SubProcess.Pipe
             };
             subProcess.Start();
-            if (!subProcess.HasStarted) return false;
+            if (!subProcess.HasStarted) return 2;
 
             var processMember = subProcess.GetType().GetField(("Process"), BindingFlags.Instance | BindingFlags.NonPublic);
             var processValue = (System.Diagnostics.Process)processMember.GetValue(subProcess);
@@ -141,13 +141,13 @@ public class SubProcessing
                 {
                     case 1:
                         sw.Stop();
-                        return true;
+                        return 1;
                     case 2:
                         // If error
                         sw.Stop();
                         subProcess.Kill();
                         Task.Run(() => WriteLog(stdOutBuffer));
-                        return false;
+                        return 2;
                 }
             }
         }
@@ -155,13 +155,13 @@ public class SubProcessing
         sw.Stop();
         subProcess.Kill();
         Task.Run(() => WriteLog(stdOutBuffer));
-        return false;
+        return 0;
     }
 
     
     
     
-    public bool DoTask(string command)
+    public int DoTask(string command)
     {
         // Check process was started
         if (subProcess is not {IsAlive: true})
@@ -196,17 +196,17 @@ public class SubProcessing
                 switch (parseResult)
                 {
                     case 1:
-                        return true;
+                        return 1;
                     case 2:
                         Task.Run(() => WriteLog(stdOutBuffer));
-                        return false;
+                        return 2;
                 }
             }
         }
         sw.Stop();
         Task.Run(() => WriteLog(stdOutBuffer));
         subProcess.Kill();
-        return false;
+        return 0;
     }
 
 

@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Project_Lykos.Resampler_Tool;
+using Project_Lykos.Word_Checker;
 
 namespace Project_Lykos
 {
@@ -21,8 +22,15 @@ namespace Project_Lykos
         private void button_resampler_Click(object sender, EventArgs e)
         {
             ResamplerTool form = new();
-            form.ShowDialog();
             Close();
+            form.ShowDialog(this);
+        }
+
+        private void button_wordchecker_Click(object sender, EventArgs e)
+        {
+            WordChecker form = new();
+            Close();
+            form.ShowDialog(this);
         }
     }
 }

@@ -7,8 +7,8 @@ namespace Project_Lykos;
 public class SubProcessingAdv
 {
     // Configs
-    private readonly TimeSpan _startTimeout = TimeSpan.FromSeconds(15);
-    private readonly TimeSpan _processTimeout = TimeSpan.FromSeconds(45);
+    private readonly TimeSpan startTimeout = TimeSpan.FromSeconds(15);
+    private readonly TimeSpan processTimeout = TimeSpan.FromSeconds(20);
 
     // Process info
     private readonly CancellationTokenSource cancelControl = new();
@@ -18,18 +18,18 @@ public class SubProcessingAdv
     // Process
     private System.Diagnostics.Process? fxProcess;
     private bool isRunning;
-    
+
     // Arguments
     private readonly string dataPath;
-    private readonly string _procPath = Cache.WrapPath;
-    private readonly string _argType = Cache.ArgType;
-    private readonly string _argLang = Cache.ArgLang;
-    private readonly bool _useNativeResampler;
+    private readonly string procPath = Cache.WrapPath;
+    private readonly string argType = Cache.ArgType;
+    private readonly string argLang = Cache.ArgLang;
+    private readonly bool useNativeResampler;
     
     public SubProcessingAdv(int processNumber, bool useNativeResampler = false)
     {
         this.processNumber = processNumber;
-        this._useNativeResampler = useNativeResampler;
+        this.useNativeResampler = useNativeResampler;
         dataPath = Cache.DataPath;
         // Deploy the FonixData for the subprocess
         // var dataName = "FXData_" + uuid + ".cdf";
@@ -54,7 +54,7 @@ public class SubProcessingAdv
             return false;
         }
 
-        return true;
+        return !fxProcess.HasExited;
     }
 
     /// <summary>
@@ -120,11 +120,11 @@ public class SubProcessingAdv
             fxProcess = new Process();
             var startInfo = new ProcessStartInfo()
             {
-                FileName = _procPath,
-                ArgumentList = { @"fxe", _argType, _argLang, dataPath, _useNativeResampler ? "true" : "false" },
+                FileName = procPath,
+                ArgumentList = { @"fxe", argType, argLang, dataPath, useNativeResampler ? "true" : "false" },
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,
-                UseShellExecute = false,
+                UseShellExecute = false
             };
             fxProcess.StartInfo = startInfo;
             
@@ -145,7 +145,7 @@ public class SubProcessingAdv
         }
         
         // Create our own time based cancellation token
-        var timeoutToken = new CancellationTokenSource(_startTimeout);
+        var timeoutToken = new CancellationTokenSource(startTimeout);
 
         // Listen to stdOut
         var taskResult = 0;
@@ -154,7 +154,7 @@ public class SubProcessingAdv
             var output = fxProcess.StandardOutput.ReadLine();
             if (output == null) continue;
             var parsedResult = ParseStartup(output);
-            if (parsedResult is not (1 or 2)) continue;
+            if (parsedResult != 1 && parsedResult != 2) continue;
             taskResult = parsedResult;
             break;
         }
@@ -174,29 +174,40 @@ public class SubProcessingAdv
         // Check process was started
         if (fxProcess == null || !isRunning)
         {
-            throw new Exception("Subprocess not running");
+            var result = StartSubProcess();
+            if (result is 2 or 0)
+            {
+                throw new Exception("Subprocess failed to start");
+            }
         }
         
         // Write command to stdIn
-        fxProcess.StandardInput.WriteLineAsync(command);
+        fxProcess!.StandardInput.WriteLine(command);
+        fxProcess!.StandardInput.Flush();
 
         // Time based cancellation token
-        var timeoutToken = new CancellationTokenSource(_processTimeout);
+        var timeoutToken = new CancellationTokenSource(processTimeout);
 
+        // Create a combined cancellation token
+        var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(cancelControl.Token, timeoutToken.Token).Token;
+        
         // Listen to stdOut
         var taskResult = 0;
-        while (!cancelControl.IsCancellationRequested && !timeoutToken.IsCancellationRequested)
+        var output = new List<string>(); // List of lines of output
+        while (!combinedToken.IsCancellationRequested)
         {
-            var output = fxProcess.StandardOutput.ReadLine();
-            if (output == null) continue;
-            var parsedResult = ParseOutput(output);
-            if (parsedResult is not (1 or 2)) continue;
-            taskResult = parsedResult;
-            break;
+            var line = fxProcess.StandardOutput.ReadToEnd(); // Read line
+            if (line == null) break; // Return timeout error if no output
+            output.Add(line); // Add to output list
+            var parsedResult = ParseOutput(line); // Parse output
+            if (parsedResult is not (1 or 2)) continue; // Skip if not a valid result
+            taskResult = parsedResult; // If valid result, set task result
+            break; // Break loop
         }
         // Shutdown if error or timeout
         if (taskResult is 2 or 0)
         {
+            Task.Run(() => WriteLog(output));
             fxProcess.Kill();
             isRunning = false;
         }
@@ -214,8 +225,22 @@ public class SubProcessingAdv
         Directory.CreateDirectory(Cache.LogDir);
         var uuid = Guid.NewGuid().ToString();
         var fileName = Path.Combine(Cache.LogDir, $"{uuid}_FaceFX_Error.log");
-        using var writer = File.CreateText(fileName);
+        await using var writer = File.CreateText(fileName);
         await File.WriteAllTextAsync(fileName, stringBuilder.ToString());
+        await writer.FlushAsync();
+    }
+    
+    /// <summary>
+    /// Writes a string builder to a log file (String list)
+    /// </summary>
+    /// <param name="stringList"></param>
+    private static async Task WriteLog(List<string> stringList)
+    {
+        Directory.CreateDirectory(Cache.LogDir);
+        var uuid = Guid.NewGuid().ToString();
+        var fileName = Path.Combine(Cache.LogDir, $"{uuid}_FaceFX_Error.log");
+        await using var writer = File.CreateText(fileName);
+        await File.WriteAllTextAsync(fileName, stringList.ToString());
         await writer.FlushAsync();
     }
 }
