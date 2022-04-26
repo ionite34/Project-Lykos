@@ -23,7 +23,7 @@
         private int lastReportedCount;
 
         // List of workers
-        private List<SubProcessingAdv> Workers { get; } = new List<SubProcessingAdv>();
+        private List<SubProcessing> Workers { get; } = new List<SubProcessing>();
 
         private void OnProgressChanged(int progressCount) // Progress Changed Event
         {
@@ -66,7 +66,7 @@
             {
                 if (cts.IsCancellationRequested) throw new OperationCanceledException();
                 CurrentBatch++;
-
+                SendReport($"Starting batch {CurrentBatch} of {TotalBatches}");                
                 // Reset counters
                 errorCount = 0;
                 ProcessedCount = 0;
@@ -77,6 +77,7 @@
                 // Build the current batch by removing the first batchSize tasks from the queue
                 var currentBatch = Enumerable.Range(0, currentBatchSize).Select(i => this.Dequeue()).ToList();
                 var batchQueue = new Queue<ProcessTask>(currentBatch); // convert list to queue
+                SendReport($"Creating {currentBatchSize} batch tasks");
                 // If not using native resampling, we need to convert audio also
                 if (!useNativeResampling)
                 {
@@ -88,12 +89,14 @@
                             MaxDegreeOfParallelism = processCount,
                             CancellationToken = cts.Token
                         };
+                        SendReport($"Starting audio conversion");
                         Parallel.ForEach(currentBatch, options, processTask =>
                         {
                             var sourcePath = processTask.WavSourcePath;
                             var targetPath = processTask.WavTempPath;
                             AudioProcessing.Resample(sourcePath, targetPath, 16000, 1);
                         });
+                        SendReport($"Audio conversion complete");
                     }
                     catch (TaskCanceledException)
                     {
@@ -111,11 +114,15 @@
                     // Start workers if not already running
                     if (!AllWorkersRunning())
                     {
+                        SendReport($"Workers not running, attempting to start...");
                         await Task.Run(() => StartWorkers(cts, processCount));
+                        SendReport($"Workers started");
                     }
 
                     // Do process batch
+                    SendReport($"Starting batch processing");
                     await ProcessBatch(batchQueue, processCount, cts, useNativeResampling);
+                    SendReport($"Batch processing complete");
                 }
                 finally
                 {
@@ -158,7 +165,8 @@
                 var affinity = i;
                 // Disable affinity if only 1 Worker
                 if (Workers.Count == 1) affinity = 0;
-                Workers.Add(new SubProcessingAdv(affinity, UseNativeResampler));
+                // Workers.Add(new SubProcessingAdv(affinity, UseNativeResampler));
+                Workers.Add(new SubProcessing(this, affinity));
             }
 
             // Start subprocesses
@@ -196,7 +204,7 @@
             await Task.WhenAll(tasks);
         }
 
-        private void RunWorker(Queue<ProcessTask> batch, SubProcessingAdv worker, CancellationTokenSource cts)
+        private void RunWorker(Queue<ProcessTask> batch, SubProcessing worker, CancellationTokenSource cts)
         {
             do
             {
@@ -220,14 +228,25 @@
                 // Check result
                 if (result != 1) // If failed
                 {
+                    var parentFolder = Path.GetFileName(Path.GetDirectoryName(processTask.WavSourcePath))!;
+                    var fileName = Path.GetFileName(processTask.WavSourcePath)!;
+                    var relativePath = Path.Join(parentFolder, fileName);
                     // If failed, retry up to defined limit
                     if (processTask.RetryCount < MaxRetryCount)
                     {
+                        if (result == 0)
+                            SendReport($"Process timeout for {relativePath}, retrying...");
+                        if (result == 2)
+                            SendReport($"Process error for {relativePath}, retrying...");
                         batch.Enqueue(processTask);
                         processTask.RetryCount++;
                     }
                     else
                     {
+                        if (result == 0)
+                            SendReport($"Process timeout for {relativePath}");
+                        if (result == 2)
+                            SendReport($"Process error for {relativePath}");
                         Interlocked.Increment(ref errorCount);
                         Interlocked.Increment(ref ProcessedCount);
                         Interlocked.Increment(ref TotalProcessed);
